@@ -55,7 +55,7 @@ for r1=1:N, r2=1:round(Int,endtime)
 end
 nstatus = insertcols!(nstatus, 1, nodes_name=1:N)
 sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime)), N=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
-V = zeros() #V constains nodes_name of vaccinated individuals, to be obtained from Cambridge
+V = zeros(Int,V0) #V constains nodes_name of vaccinated individuals, to be obtained from Cambridge
 
 # Function to return rate of transmission, beta
 function func_beta(beta,p,t)
@@ -163,8 +163,7 @@ function func_spread(G, V, timestep)
         end
     end
 
-    # A condition of size(V,1)>0 does not work because it gives size = 1
-    if V[1] != 0
+    if size(V,1)>0
         for index5 in 1:(size(V,1))
             nstatus[V[index5],timestep] = "V"
         end
