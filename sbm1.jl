@@ -1,11 +1,11 @@
 # Stochastic block network model
 # Authors: Kendra Wu
-# Date: 12 November 2019
+# Date: 27 November 2019
 
 # This is a stochastic block model (SBM) of a clustered network using Ebola-like
 # parameters from Hitchings et al (2018).
-# Note: This version only considers one community, and it is not connected to
-# the other clusters just yet.
+# Note that this version only considers one community, and it is not connected
+# to the other clusters of the population just yet.
 
 #Begin timing the processing time
 @time begin #begin timing the processing time
@@ -165,7 +165,7 @@ function func_spread(G, V, timestep)
 
     if size(V,1)>0
         for index5 in 1:(size(V,1))
-            nstatus[V[index5],timestep] = "V"
+            nstatus[V[index5],timestep:(round(Int,endtime)+1)] = "V"
         end
     end
 
