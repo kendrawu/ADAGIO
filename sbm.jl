@@ -1,6 +1,6 @@
 # Stochastic block network model
 # Authors: Kendra Wu
-# Date: 27 November 2019
+# Date: 27 November 2020
 
 # Simulates disease transmission of a 2-level clustered network based on stochastic block model (SBM) using Ebola-like parameters from Hitchings et al (2018).
 
@@ -139,7 +139,7 @@ function func_importcases(casenum0, par_disease, nstatus, timestep)
     # Generate node_names of imported cases
     importcases = sample(1:N, casenum0, replace=false) # Sampling without replacement
 
-    # From the infected cases in G, allow health statuses change as time progresses
+    # From importcases, allow health statuses change as time progresses
     for index1 in 1:(size(importcases,1))
 
         # Compute the parameters for disease properties
@@ -155,7 +155,7 @@ function func_importcases(casenum0, par_disease, nstatus, timestep)
 
         # column_index start at 2 because nstatus[:,1] is nodes_name
         #for index2 in timestep:(round(Int,tbound1))
-        #    nstatus[G[index1],index2+1] = "E"
+        #    nstatus[importcases[index1],index2+1] = "E"
         #end
 
         for index3 in (round(Int,tbound1)):(round(Int,tbound2))
@@ -242,47 +242,47 @@ function func_uniqueS(y, nstatus, timestep)
     # timestep: The time t of the outbreak
 
     # Output:
-    # G: A list of nodes_names that are to be infected at t=(timestep+1) according to SBM
+    # infectees: A list of nodes_names that are to be infected at t=(timestep+1) according to SBM
 
     # Initialization
-    G1 = fill(0,size(y,1)) # To holds nodes_names of the individuals who are susceptible at (timestep+1) and they will be infected according to SBM model
+    infectees_tmp = fill(0,size(y,1)) # To holds nodes_names of the individuals who are susceptible at (timestep+1) and they will be infected according to SBM model
     r = 1 # A counter
 
     for i in 1:(size(y,1))
         # Obtain nodes_name if y[i]'s status is susceptible at time=(timestep+1)
         if nstatus[y[i],timestep+1] == "S"
-            G1[r] = nstatus[y[i],:nodes_name]
+            infectees_tmp[r] = nstatus[y[i],:nodes_name]
             r += 1
         end
     end
 
-    filter!(x->x≠0,G1) # To remove the zero elements in G1
+    filter!(x->x≠0,infectees_tmp) # To remove the zero elements in infectees_tmp
     # Take into account susceptible deplection
-    bound = min(r-1, size(y,1), size(G1,1)) # Find the minimum among the variables
+    bound = min(r-1, size(y,1), size(infectees_tmp,1)) # Find the minimum among the variables
 
     if bound> 0
-        G = sample(G1, bound, replace=false)
-        return G
+        infectees = sample(infectees_tmp, bound, replace=false)
+        return infectees
     else
-        G = Int[]
-        return G
+        infectees = Int[]
+        return infectees
     end
 end
 
 # Function to simulate the spread of the disease and return the statuses of each nodes_name at all timesteps
-function func_spread(par_disease, nstatus, G, V, timestep)
+function func_spread(par_disease, nstatus, infectees, V, timestep)
 
     # Inputs:
     # par_disease: User-defined parameters of the disease
-    # G: A list of nodes_names that are to be infected at t=timestep according to SBM
+    # infectees: A list of nodes_names that are to be infected at t=timestep according to SBM
     # V: A list of nodes_names that are vaccinated at t=timestep
     # timestep: The time t of the outbreak
 
     # Output:
     # nstate: Health statuses of all the individuals in the population at each time step
 
-    # From the infected cases in G, allow health statuses change as time progresses
-    for index1 in 1:(size(G,1))
+    # From the infected cases in infectees, allow health statuses change as time progresses
+    for index1 in 1:(size(infectees,1))
 
         # Compute the parameters for disease properties
         incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
@@ -296,15 +296,15 @@ function func_spread(par_disease, nstatus, G, V, timestep)
 
         # column_index start at 2 because nstatus[:,1] is nodes_name
         for index2 in timestep:(round(Int,tbound1))
-            nstatus[G[index1],index2+1] = "E"
+            nstatus[infectees[index1],index2+1] = "E"
         end
 
         for index3 in (round(Int,tbound1)+1):(round(Int,tbound2))
-            nstatus[G[index1],index3+1] = "I"
+            nstatus[infectees[index1],index3+1] = "I"
         end
 
         for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
-            nstatus[G[index1],index4+1] = "R"
+            nstatus[infectees[index1],index4+1] = "R"
         end
     end
 
@@ -363,14 +363,14 @@ for timestep1 in 2:(round(Int,endtime))
 
     P = func_network(par_cluster, communitysize, clusternum, nstatus, timestep1) # Construct a who-infect-whom stochastic block network
     y = func_find(P) # The index numbers that will have disease transmission according to the stochastic block network model
-    G = func_uniqueS(y, nstatus, timestep1) # Make sure the infectees by nodes_names from y are susceptibles
+    infectees = func_uniqueS(y, nstatus, timestep1) # Make sure the infectees by nodes_names from y are susceptibles
 
-    if size(y,1)>0 && size(G,1)>0 # Check if there are infectees
+    if size(y,1)>0 && size(infectees,1)>0 # Check if there are infectees
 
         global nstatus
         global sbm_sol
 
-        nstatus = func_spread(par_disease, nstatus, G, V, timestep1) # Spread the diseae within the network and update nstatus
+        nstatus = func_spread(par_disease, nstatus, infectees, V, timestep1) # Spread the diseae within the network and update nstatus
 
         # Count number of occurrences of SEIRV at a particular timestep
         for timestep2 in 2:(round(Int,endtime))
