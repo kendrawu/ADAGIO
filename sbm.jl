@@ -11,6 +11,7 @@
 using SpecialFunctions # For generating gamma distribution
 using LinearAlgebra
 using Distributions
+using StatsBase
 using CSV, DataFrames
 using DelimitedFiles
 using Plots
@@ -21,7 +22,7 @@ endtime = 100.0 # Duration of simulation (timestep is in a unit of days)
 S0 = N # Number of suspectible people in the population at day 0
 V0 = 0 # Number of vaccinated individuals in the population at day 0
 casenum0 = 10 # Number of infectious individuals introduced into the community to begin the outbreak
-init_seir = DataFrame(s=S0-casenum0, e=0, i=casenum0, r=0, v=V0) # Initial conditions of SEIRV
+init_seir = DataFrame(s=S0-casenum0, e=0, i=casenum0, r=0, v=V0) # Initial states of SEIRV
 
 ## The clustered network
 #communitynum: Number of communities in the clustered network
@@ -37,7 +38,7 @@ lambda = 0.01 # Per-time-step harzard of infection for a sucsptible nodes from a
 par_disease = DataFrame(incubperiod_shape=3.11, incubperiod_rate=0.32, infectperiod_shape=1.13, infectperiod_rate=0.226)
 
 # Initializations
-beta_t = ones(round(Int,endtime+1)) #Initialize beta_t
+#beta_t = ones(round(Int,endtime+1)) #Initialize beta_t
 nstatus = convert(DataFrame,Array{Union{Missing, String}}(missing, N, round(Int,endtime))) # Holds the health statuses of all the individuals in the population at each time step
 for r1=1:N, r2=1:round(Int,endtime)
     nstatus[r1,r2] = "S" # Set the initial health status as "S" for everyone in the population at all time steps
@@ -136,7 +137,7 @@ function func_importcases(casenum0, par_disease, nstatus, timestep)
     # nstatus: Health statuses of all individuals in the population at each time step
 
     # Generate node_names of imported cases
-    importcases = rand(1:N, casenum0)
+    importcases = sample(1:N, casenum0, replace=false) # Sampling without replacement
 
     # From the infected cases in G, allow health statuses change as time progresses
     for index1 in 1:(size(importcases,1))
@@ -260,7 +261,7 @@ function func_uniqueS(y, nstatus, timestep)
     bound = min(r-1, size(y,1), size(G1,1)) # Find the minimum among the variables
 
     if bound> 0
-        G = rand(G1, bound)
+        G = sample(G1, bound, replace=false)
         return G
     else
         G = Int[]
@@ -316,7 +317,7 @@ function func_spread(par_disease, nstatus, G, V, timestep)
     return nstatus
 end
 
-# Function to count the occurrence of unique elements in vector sbm.nodes_status,
+# Function to count the occurrence of unique elements in nstatus[:,timestep],
 # in this case, the function counts the incidence of SEIRV nodes
 function func_countelements(v)
 
@@ -364,7 +365,7 @@ for timestep1 in 2:(round(Int,endtime))
     y = func_find(P) # The index numbers that will have disease transmission according to the stochastic block network model
     G = func_uniqueS(y, nstatus, timestep1) # Make sure the infectees by nodes_names from y are susceptibles
 
-    if size(y,1)>0 && size(G,1)>0
+    if size(y,1)>0 && size(G,1)>0 # Check if there are infectees
 
         global nstatus
         global sbm_sol
