@@ -1,8 +1,8 @@
 # Stochastic block network model
 # Authors: Kendra Wu
-# Date: 13 January 2020
+# Date: 15 January 2020
 
-# Simulates disease transmission of a 2-level clustered network which includes contacts structure based on stochastic block model (SBM) using Ebola-like parameters from Hitchings et al (2018).
+# Simulates disease transmission of a 2-level clustered network with contact structure and imported cases at random time and clusters based on stochastic block model (SBM) using Ebola-like parameters from Hitchings et al (2018).
 
 # Begin timing the processing time
 @time begin #begin timing the processing time
@@ -22,6 +22,7 @@ endtime = 200.0 # Duration of simulation (timestep is in a unit of days)
 S0 = N # Number of suspectible people in the population at day 0
 V0 = 0 # Number of vaccinated individuals in the population at day 0
 casenum0 = 10 # Number of infectious individuals introduced into the community to begin the outbreak
+import_lambda = .05 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
 init_seir = DataFrame(s=S0-casenum0, e=0, i=casenum0, r=0, v=V0) # Initial states of SEIRV
 
 ## The clustered network
@@ -126,22 +127,48 @@ function func_partition(communitysize)
     return clusternum
 end
 
-# Function to generate imported cases and randomly distribute them into different clusters (at timestep=1, for now)
-function func_importcases(casenum0, par_disease, nstatus, timestep)
+# Function to generate node_names of imported cases on a time series, assumed to be poisson distributed
+function func_importcases_timeseries(import_lambda, casenum0, endtime)
 
     # Inputs:
+    # import_lambda: Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
     # casenum0: Number of infectious individuals introduced into the community to begin the outbreak
+    # endtime: Duration of simulation (timestep is in a unit of days)
+
+    # Output:
+    # importcasenum_timeseries: node_names of imported cases on a time series for the duration of the outbreak
+
+    # Initialization
+    importcasenum_timeseries = zeros(Int, (round(Int,endtime)))
+
+    for t = 1:(round(Int,endtime))
+        if t == 1
+            importcasenum_timeseries[t] = casenum0
+        else
+            importcasenum_timeseries[t] = rand(Poisson(import_lambda), 1)[1]
+        end
+    end
+    return importcasenum_timeseries
+end
+
+# Function to generate imported cases and randomly distribute them into different clusters (at timestep=1, for now)
+function func_importcases(par_disease, importcasenum_timeseries, nstatus, timestep)
+
+    # Inputs:
     # par_disease: User-defined parameters of the disease
+    # importcasenum_timeseries: Array that holds number of infectious individuals introduced into the community throughout the duration of the outbreak
     # nstatus: Health statuses of all individuals in the population at each time step
     # timestep: The time t of the outbreak
 
     # Output:
     # nstatus: Health statuses of all individuals in the population at each time step
 
-    # Generate node_names of imported cases
-    importcases = sample(1:N, casenum0, replace=false) # Sampling without replacement
+    # From importcasesnum_timeseries, obtain number of import cases at t=timestep
+    casenum = importcasenum_timeseries[timestep]
 
-    # From importcases, allow health statuses change as time progresses
+    # Generate node_names of imported cases at t=timestep
+    importcases = sample(1:N, casenum, replace=false) # Sampling without replacement
+
     for index1 in 1:(size(importcases,1))
 
         # Compute the parameters for disease properties
@@ -161,11 +188,11 @@ function func_importcases(casenum0, par_disease, nstatus, timestep)
         #end
 
         for index3 in (round(Int,tbound1)):(round(Int,tbound2))
-            nstatus[importcases[index1],index3+1] = "I"
+            nstatus[importcases,index3+1] = "I"
         end
 
         for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
-            nstatus[importcases[index1],index4+1] = "R"
+            nstatus[importcases,index4+1] = "R"
         end
     end
 
@@ -173,13 +200,12 @@ function func_importcases(casenum0, par_disease, nstatus, timestep)
 end
 
 # Function to construct and return the who-contact-whom using stochastic block model
-function func_contacts_network(par_cluster, communitysize, clusternum, nstatus, timestep)
+function func_contacts_network(par_cluster, communitysize, clusternum)
 
     # Inputs:
     # par_cluster: User-defined parameters of the network clusters
     # communitysize: Sizes of each cluster
-    # nstatus: Health statuses of all individuals in the population at each time step
-    # timestep: The time t of the outbreak
+    # clusternum: Cluster number of each individuals in the population
 
     # Output:
     # G: The who-contact-whom stochastic block matrix graph
@@ -358,15 +384,15 @@ function func_countelements(v)
 end
 
 # Main algorithm
-# Compute the parameters of the clusters
+# Compute the parameters of the clusters, the number of import cases, and a who-contact-whom network graph
 communitysize = func_par_cluster(N, par_cluster) # Define the sizes of each cluster
 clusternum = func_partition(communitysize) # Assign cluster number to each individual in the population
+importcasenum_timeseries = func_importcases_timeseries(import_lambda, casenum0, endtime) # Generate number of import cases for the duration of the outbreak
+G = func_contacts_network(par_cluster, communitysize, clusternum) # Construct a who-contact-whom stochastic block network
 
-# Import infectious cases (at timestep=1, for now)
-    G = func_contacts_network(par_cluster, communitysize, clusternum, nstatus, 1) # Construct a who-contact-whom stochastic block network
-    nstatus = func_importcases(casenum0, par_disease, nstatus, 1)
+    timestep3 = 1
+    nstatus = func_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases
 
-    timestep3=1
     D = func_countelements(nstatus[:,timestep3+1]) # Count number of occurrences of SEIRV at a particular t=timestep2
     D = insertcols!(D, 1, S=0, makeunique=true) #Set S as zero if column does not exist
     D = insertcols!(D, 1, E=0, makeunique=true) #Set E as zero if column does not exist
@@ -385,6 +411,9 @@ clusternum = func_partition(communitysize) # Assign cluster number to each indiv
 # Begin transmission
 for timestep1 in 2:(round(Int,endtime))
 
+    if timestep1 != 2
+        nstatus = func_importcases(par_disease, importcasenum_timeseries, nstatus, timestep1)
+    end
     P = func_transmit_network(G, par_cluster, clusternum, nstatus, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network G
     potential_transmit_indexes = func_findnonzeros(P) # The index numbers that will have disease transmission according to the stochastic block network model
     transmit_indexes = func_uniqueS(potential_transmit_indexes, nstatus, timestep1) # Check if potential_transmit_indexes are susceptibles
@@ -421,7 +450,7 @@ end
 
 sbm_sol = sbm_sol[1:size(sbm_sol,1) .!= 1,: ] # Delete the dummy row 1 from sbm_sol
 CSV.write("./data/sbm_sol.csv", sbm_sol, writeheader=true) # Write key results into files
-#println(last(sbm_sol,10))
+#println(first(sbm_sol,10))
 
 print("Processing time:")
 end #stop timeing the processing time
