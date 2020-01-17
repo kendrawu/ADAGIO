@@ -238,7 +238,7 @@ function func_transmit_network(G, par_cluster, clusternum, nstatus, timestep)
     # Output:
     # P: The who-infect-whom stochastic block matrix graph
 
-    # Initializations
+    # Initialization
     P = zeros(Int64, size(G,1), size(G,2))
 
     # Construct a who-infect-whom stochastic block matrix graph
@@ -283,7 +283,7 @@ function func_findnonzeros(M)
     return nonzeros_indexes
 end
 
-# From y, this function finds and return the node_names of those who are susceptible at t=(timestep+1)
+# From nonzeros_indexes, this function finds and return the node_names of those who are susceptible at t=(timestep+1)
 function func_uniqueS(nonzeros_indexes, nstatus, timestep)
 
     # Inputs:
@@ -391,9 +391,9 @@ importcasenum_timeseries = func_importcases_timeseries(import_lambda, casenum0, 
 G = func_contacts_network(par_cluster, communitysize, clusternum) # Construct a who-contact-whom stochastic block network
 
     timestep3 = 1
-    nstatus = func_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases
+    nstatus = func_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t-timestep3
 
-    D = func_countelements(nstatus[:,timestep3+1]) # Count number of occurrences of SEIRV at a particular t=timestep2
+    D = func_countelements(nstatus[:,timestep3+1]) # Count number of occurrences of SEIRV at a particular t=timestep3
     D = insertcols!(D, 1, S=0, makeunique=true) #Set S as zero if column does not exist
     D = insertcols!(D, 1, E=0, makeunique=true) #Set E as zero if column does not exist
     D = insertcols!(D, 1, I=0, makeunique=true) #Set I as zero if column does not exist
