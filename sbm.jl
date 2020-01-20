@@ -1,8 +1,8 @@
 # Stochastic block network model
 # Author: Kendra Wu
-# Date: 15 January 2020
+# Date: 16 January 2020
 
-# Simulates disease transmission of a 2-level clustered network with contact structure and imported cases at random time and clusters based on stochastic block model (SBM) using Ebola-like parameters from Hitchings et al (2018).
+# Simulates disease transmission of a 3-level clustered network with contact structure and imported cases at random time and clusters based on stochastic block model (SBM) using Ebola-like parameters from Hitchings et al (2018).
 
 # Begin timing the processing time
 @time begin #begin timing the processing time
@@ -25,15 +25,25 @@ casenum0 = 10 # Number of infectious individuals introduced into the community t
 import_lambda = .05 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
 init_seir = DataFrame(s=S0-casenum0, e=0, i=casenum0, r=0, v=V0) # Initial states of SEIRV
 
+## The households
+# hhnum: Number of households in the network
+# hhsize_avg: Average size of one household
+# hhsize_range: Range of household sizes (sizes are uniformly distributed)
+# hcprob_within: Probability of contacts of an edge between two nodes in the same household/ small cluster
+# hcprob_between: Probability of contacts of an edge between two nodes in different households/ small clusters
+# htprob_within: Probability of transmission of an edge between two nodes in the same household/ small cluster
+# htprob_between: Probability of transmission of an edge between two nodes in different households/ small clusters
+par_hh = DataFrame(hhnum=150, hhsize_avg=3, hhsize_range=2, hcprob_within=1, hcprob_between=0.6, htprob_within=0.8, htprob_between=0.5)
+
 ## The clustered network
-#communitynum: Number of communities in the clustered network
-#communitysize_avg: Average size of one clustered community
-#communitysize_range: Range of community sizes (sizes are uniformly distributed)
-#cprob_within: Probability of contacts of an edge between two nodes in the same community
-#cprob_between: Probability of contacts of an edge between two nodes in different communities
-#tprob_within: Probability of transmission of an edge between two nodes in the same community
-#tprob_between: Probability of transmission of an edge between two nodes in different communities
-par_cluster = DataFrame(communitynum=2, communitysize_avg=100, communitysize_range=40, cprob_within=0.5, cprob_between=0.1, tprob_within=0.003, tprob_between=0.0001)
+# communitynum: Number of communities in the clustered network
+# communitysize_avg: Average size of one clustered community
+# communitysize_range: Range of community sizes (sizes are uniformly distributed)
+# cprob_within: Probability of contacts of an edge between two nodes in the same community
+# cprob_between: Probability of contacts of an edge between two nodes in different communities
+# tprob_within: Probability of transmission of an edge between two nodes in the same community
+# tprob_between: Probability of transmission of an edge between two nodes in different communities
+par_community = DataFrame(communitynum=4, communitysize_avg=100, communitysize_range=20, cprob_within=0.4, cprob_between=0.1, tprob_within=0.03, tprob_between=0.01)
 
 ## Disease properties
 # Use Ebola-like parameters (from Hitchings (2018)) - Gamma-distributed
@@ -57,67 +67,80 @@ function fn_beta(beta,p,t)
     end
 end
 
-# Function to return the sizes of clusters
-function fn_par_cluster(N, par_cluster)
+# Function to return the sizes of households or communities
+function fn_par_cluster(N, par_hh, par_community, clustertype)
 
     # Inputs:
     # N: Total population size
-    # par_cluster: User-defined parameters of the network clusters
+    # par_hh: User-defined parameters of the households
+    # par_community: User-defined parameters of the network clusters
+    # clustertype: to decide whether we compute the sizes of households or communities in the network
 
     # Output:
-    # communitysize: Sizes of each cluster
+    # clustersize: Sizes of each cluster, whether they are households (hh) or communities
 
-    communitysize = zeros(Int, par_cluster[1,:communitynum]) # Holds the values of the sizes of the clusters
-
-    communitysize_avg_mat = [(par_cluster[1,:communitysize_avg]) for i=1:par_cluster[1,:communitynum]]
-    random_mat = rand(Uniform(-par_cluster[1,:communitysize_range]/2,par_cluster[1,:communitysize_range]/2), (par_cluster[1,:communitynum], par_cluster[1,:communitynum])) #Obtain a random community size value based on uniform distribution
-    random_mat = round.(Int, random_mat)
+    # Assign parameter values
+    if clustertype == "household"
+        clusternum = par_hh[1,:hhnum]
+        clustersize = zeros(Int, par_hh[1,:hhnum]) # Holds the values of the sizes of the households
+        clustersize_avg_mat = [(par_hh[1,:hhsize_avg]) for i=1:par_hh[1,:hhnum]]
+        clusterrandom_mat = rand(Uniform(-par_hh[1,:hhsize_range]/2,par_hh[1,:hhsize_range]/2), (par_hh[1,:hhnum], par_hh[1,:hhnum])) # Obtain a random household size value based on uniform distribution
+        clusterrandom_mat = round.(Int, clusterrandom_mat)
+    elseif clustertype == "community"
+        clusternum = par_community[1,:communitynum]
+        clustersize = zeros(Int, par_community[1,:communitynum]) # Holds the values of the sizes of the clusters
+        clustersize_avg_mat = [(par_community[1,:communitysize_avg]) for i=1:par_community[1,:communitynum]]
+        clusterrandom_mat = rand(Uniform(-par_community[1,:communitysize_range]/2,par_community[1,:communitysize_range]/2), (par_community[1,:communitynum], par_community[1,:communitynum])) # Obtain a random community size value based on uniform distribution
+        clusterrandom_mat = round.(Int, clusterrandom_mat)
+    else
+        throw(ArgumentError("The decision variable needs to be either household or community."))
+    end
 
     # Determine the size of each cluster
-    for i in 1:(par_cluster[1,:communitynum])
-        if i != par_cluster[1,:communitynum]
-            communitysize[i] = communitysize_avg_mat[i] + random_mat[i,i]
+    for i in 1:clusternum
+        if i != clusternum
+            clustersize[i] = clustersize_avg_mat[i] + clusterrandom_mat[i,i]
         else
-            if (sum(communitysize))>N
+            if (sum(clustersize))>N
                 throw(ArgumentError("Not enough people to partition them into all the clusters. Please rerun the simulation or consider lowering the number of clusters/ increasing N."))
             else
-                communitysize[i] = N - sum(communitysize[1:(i-1)])
+                clustersize[i] = N - sum(clustersize[1:(i-1)])
             end
         end
     end
 
-    return communitysize
+    return clustersize
 end
 
 # Function to define which node goes to which cluster and return a list of the cluster number
-function fn_partition(communitysize)
+function fn_partition(clustersize)
 
     # Input:
-    # communitysize: Sizes of each cluster
+    # clustersize: Sizes of each cluster
 
     # Output:
-    # clusternum: Cluster number of each individuals in the population
+    # clusternum: Cluster number of each individual in the population
 
     # Initialization
-    community_partition = zeros(Int, size(communitysize,1), size(communitysize,1))
+    cluster_partition = zeros(Int, size(clustersize,1))
 
-    for i = 1: (size(communitysize,1))
-        community_partition[i] = communitysize[i]
+    for i = 1: (size(clustersize,1))
+        cluster_partition[i] = clustersize[i]
     end
-    clusternum = ones(Int, sum(communitysize))
+    clusternum = ones(Int, sum(clustersize))
 
     # Define the node numbers where partitions occur
-    if size(communitysize,1) >= 2
-        for q1 in 2:(size(communitysize,1))
-            community_partition[q1] = community_partition[q1-1] + communitysize[q1]
+    if size(clustersize,1) >= 2
+        for q1 in 2:(size(clustersize,1))
+            cluster_partition[q1] = cluster_partition[q1-1] + clustersize[q1]
         end
     end
 
     # Distribute the individuals into clusters according to their node number
-    if size(community_partition,1) >= 2
-        for nodenum in 1:(sum(communitysize))
-            for q2 in 2:(size(communitysize,1))
-                if (nodenum > community_partition[q2-1]) && (nodenum <= community_partition[q2])
+    if size(cluster_partition,1) >= 2
+        for nodenum in 1:(sum(clustersize))
+            for q2 in 2:(size(clustersize,1))
+                if (nodenum > cluster_partition[q2-1]) && (nodenum <= cluster_partition[q2])
                     clusternum[nodenum] = q2
                 end
             end
@@ -200,12 +223,15 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
 end
 
 # Function to construct and return the who-contact-whom using stochastic block model
-function fn_contacts_network(par_cluster, communitysize, clusternum)
+function fn_contact_network(par_hh, par_community, hhsize, communitysize, hhnum, communitynum)
 
     # Inputs:
-    # par_cluster: User-defined parameters of the network clusters
-    # communitysize: Sizes of each cluster
-    # clusternum: Cluster number of each individuals in the population
+    # par_hh: User-defined parameters of households
+    # par_community: User-defined parameters of the networked communities
+    # hhsize: Sizes of each household
+    # communitysize: Sizes of each community
+    # hhnum: Household number of each individuals in the population
+    # communitynum: Community number of each individuals in the population
 
     # Output:
     # G: The who-contact-whom stochastic block matrix graph
@@ -215,10 +241,18 @@ function fn_contacts_network(par_cluster, communitysize, clusternum)
 
     # Construct a who-contact-whom stochastic block matrix graph
     for i = 1:sum(communitysize), j = 1:sum(communitysize)
-        if clusternum[i] == clusternum[j] # Check if infector and infectee are from the same cluster
-            G[i,j] = rand(Poisson(par_cluster[1,:cprob_within]),1)[1]
+        if communitynum[i] == communitynum[j] # Check if infector and infectee are from the same community
+            if hhnum[i] == hhnum[j] # Check if infector and infectee are from the same houseshold
+                G[i,j] = rand(Poisson(par_community[1,:cprob_within]),1)[1] * rand(Poisson(par_hh[1,:hcprob_within]),1)[1]
+            else
+                G[i,j] = rand(Poisson(par_community[1,:cprob_within]),1)[1] * rand(Poisson(par_hh[1,:hcprob_between]),1)[1]
+            end
         else
-            G[i,j] = rand(Poisson(par_cluster[1,:cprob_between]),1)[1]
+            if hhnum[i] == hhnum[j] # Check if infector and infectee are from the same houseshold
+                G[i,j] = rand(Poisson(par_community[1,:cprob_between]),1)[1] * rand(Poisson(par_hh[1,:hcprob_within]),1)[1]
+            else
+                G[i,j] = rand(Poisson(par_community[1,:cprob_between]),1)[1] * rand(Poisson(par_hh[1,:hcprob_between]),1)[1]
+            end
         end
     end
 
@@ -226,12 +260,14 @@ function fn_contacts_network(par_cluster, communitysize, clusternum)
 end
 
 # Function to construct and return the who-infect-whom stochastic block matrix
-function fn_transmit_network(G, par_cluster, clusternum, nstatus, timestep)
+function fn_transmit_network(G, par_hh, par_community, hhnum, communitynum, nstatus, timestep)
 
     # Inputs:
     # G: The who-contact-whom stochastic block matrix graph
-    # par_cluster: User-defined parameters of the network clusters
-    # clusternum: Holds the cluster number of each individuals in the population
+    # par_hh: User-defined parameters of the households
+    # par_community: User-defined parameters of the network community
+    # hhnum: Holds the household number of each individuals in the population
+    # communitynum: Holds the community number of each individuals in the population
     # nstatus: Health statuses of all individuals in the population at each time step
     # timestep: The time t of the outbreak
 
@@ -244,10 +280,18 @@ function fn_transmit_network(G, par_cluster, clusternum, nstatus, timestep)
     # Construct a who-infect-whom stochastic block matrix graph
     for i = 1:size(G,1), j =1:size(G,2)
         if G[i,j] != 0 && nstatus[i,timestep+1] == "I" # Check if there is a contact edge between the pair and if the infector is infectious
-            if clusternum[i] == clusternum[j] # Check if infector and infectee are from the same cluster
-                P[i,j] = rand(Bernoulli(par_cluster[1,:tprob_within]),1)[1]
+            if communitynum[i] == communitynum[j] # Check if infector and infectee are from the same cluster
+                if hhnum[i] == hhnum[j]
+                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_within]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_within]),1)[1]
+                else
+                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_within]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_within]),1)[1]
+                end
             else
-                P[i,j] = rand(Bernoulli(par_cluster[1,:tprob_between]),1)[1]
+                if hhnum[i] == hhnum[j]
+                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_between]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_within]),1)[1]
+                else
+                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_between]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_between]),1)[1]
+                end
             end
         end
     end
@@ -384,28 +428,34 @@ function fn_countelements(v)
 end
 
 # Main algorithm
-# Compute the parameters of the clusters, the number of import cases, and a who-contact-whom network graph
-communitysize = fn_par_cluster(N, par_cluster) # Define the sizes of each cluster
-clusternum = fn_partition(communitysize) # Assign cluster number to each individual in the population
-importcasenum_timeseries = fn_importcases_timeseries(import_lambda, casenum0, endtime) # Generate number of import cases for the duration of the outbreak
-G = fn_contacts_network(par_cluster, communitysize, clusternum) # Construct a who-contact-whom stochastic block network
+# Compute the parameters of the clusters
+hhsize = fn_par_cluster(N, par_hh, par_community, "household") # Define the sizes of each household
+hhnum = fn_partition(hhsize) # Assign household number to each individual in the population
+communitysize = fn_par_cluster(N, par_hh, par_community, "community") # Define the sizes of each community
+communitynum = fn_partition(communitysize) # Assign community number to each individual in the population
+
+# Generate the number of imported cases for the duration of the outbreak
+importcasenum_timeseries = fn_importcases_timeseries(import_lambda, casenum0, endtime)
+
+# Compute who-contact-whom network graphs
+G = fn_contact_network(par_hh, par_community, hhsize, communitysize, hhnum, communitynum) # Construct a who-contact-whom stochastic block network
 
     timestep3 = 1
     nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t-timestep3
 
     D = fn_countelements(nstatus[:,timestep3+1]) # Count number of occurrences of SEIRV at a particular t=timestep3
-    D = insertcols!(D, 1, S=0, makeunique=true) #Set S as zero if column does not exist
-    D = insertcols!(D, 1, E=0, makeunique=true) #Set E as zero if column does not exist
-    D = insertcols!(D, 1, I=0, makeunique=true) #Set I as zero if column does not exist
-    D = insertcols!(D, 1, R=0, makeunique=true) #Set R as zero if column does not exist
-    D = insertcols!(D, 1, V=0, makeunique=true) #Set V as zero if column does not exist
+    D = insertcols!(D, 1, S=0, makeunique=true) # Set S as zero if column does not exist
+    D = insertcols!(D, 1, E=0, makeunique=true) # Set E as zero if column does not exist
+    D = insertcols!(D, 1, I=0, makeunique=true) # Set I as zero if column does not exist
+    D = insertcols!(D, 1, R=0, makeunique=true) # Set R as zero if column does not exist
+    D = insertcols!(D, 1, V=0, makeunique=true) # Set V as zero if column does not exist
 
     # Put these SEIRV incidence values into a DataFrame sbm_sol
-    sbm_sol[timestep3,:S] = D[1,:S] #Put S value into the appropriate cell
-    sbm_sol[timestep3,:E] = D[1,:E] #Put E value into the appropriate cell
-    sbm_sol[timestep3,:I] = D[1,:I] #Put I value into the appropriate cell
-    sbm_sol[timestep3,:R] = D[1,:R] #Put R value into the appropriate cell
-    sbm_sol[timestep3,:V] = D[1,:V] #Put V value into the appropriate cell
+    sbm_sol[timestep3,:S] = D[1,:S] # Put S value into the appropriate cell
+    sbm_sol[timestep3,:E] = D[1,:E] # Put E value into the appropriate cell
+    sbm_sol[timestep3,:I] = D[1,:I] # Put I value into the appropriate cell
+    sbm_sol[timestep3,:R] = D[1,:R] # Put R value into the appropriate cell
+    sbm_sol[timestep3,:V] = D[1,:V] # Put V value into the appropriate cell
     sbm_sol[timestep3,:N] = sbm_sol[timestep3,:S] + sbm_sol[timestep3,:E] + sbm_sol[timestep3,:I] + sbm_sol[timestep3,:R] + sbm_sol[timestep3,:V] # The total number of the population, for accurancy check
 
 # Begin transmission
@@ -414,7 +464,8 @@ for timestep1 in 2:(round(Int,endtime))
     if timestep1 != 2
         nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep1)
     end
-    P = fn_transmit_network(G, par_cluster, clusternum, nstatus, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network G
+
+    P = fn_transmit_network(G, par_hh, par_community, hhnum, communitynum, nstatus, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
     potential_transmit_indexes = fn_findnonzeros(P) # The index numbers that will have disease transmission according to the stochastic block network model
     transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus, timestep1) # Check if potential_transmit_indexes are susceptibles
 
@@ -431,19 +482,19 @@ for timestep1 in 2:(round(Int,endtime))
             #global sbm_sol
 
             D = fn_countelements(nstatus[:,timestep2]) # Count number of occurrences of SEIRV at a particular t=timestep2
-            D = insertcols!(D, 1, S=0, makeunique=true) #Set S as zero if column does not exist
-            D = insertcols!(D, 1, E=0, makeunique=true) #Set E as zero if column does not exist
-            D = insertcols!(D, 1, I=0, makeunique=true) #Set I as zero if column does not exist
-            D = insertcols!(D, 1, R=0, makeunique=true) #Set R as zero if column does not exist
-            D = insertcols!(D, 1, V=0, makeunique=true) #Set V as zero if column does not exist
+            D = insertcols!(D, 1, S=0, makeunique=true) # Set S as zero if column does not exist
+            D = insertcols!(D, 1, E=0, makeunique=true) # Set E as zero if column does not exist
+            D = insertcols!(D, 1, I=0, makeunique=true) # Set I as zero if column does not exist
+            D = insertcols!(D, 1, R=0, makeunique=true) # Set R as zero if column does not exist
+            D = insertcols!(D, 1, V=0, makeunique=true) # Set V as zero if column does not exist
 
             # Put these SEIRV incidence values into a DataFrame sbm_sol
-            sbm_sol[timestep2,:S] = D[1,:S] #Put S value into the appropriate cell
-            sbm_sol[timestep2,:E] = D[1,:E] #Put E value into the appropriate cell
-            sbm_sol[timestep2,:I] = D[1,:I] #Put I value into the appropriate cell
-            sbm_sol[timestep2,:R] = D[1,:R] #Put R value into the appropriate cell
-            sbm_sol[timestep2,:V] = D[1,:V] #Put V value into the appropriate cell
-            sbm_sol[timestep2,:N] = sbm_sol[timestep2,:S] + sbm_sol[timestep2,:E] + sbm_sol[timestep2,:I] + sbm_sol[timestep2,:R] + sbm_sol[timestep2,:V]#The total number of the population, for accurancy check
+            sbm_sol[timestep2,:S] = D[1,:S] # Put S value into the appropriate cell
+            sbm_sol[timestep2,:E] = D[1,:E] # Put E value into the appropriate cell
+            sbm_sol[timestep2,:I] = D[1,:I] # Put I value into the appropriate cell
+            sbm_sol[timestep2,:R] = D[1,:R] # Put R value into the appropriate cell
+            sbm_sol[timestep2,:V] = D[1,:V] # Put V value into the appropriate cell
+            sbm_sol[timestep2,:N] = sbm_sol[timestep2,:S] + sbm_sol[timestep2,:E] + sbm_sol[timestep2,:I] + sbm_sol[timestep2,:R] + sbm_sol[timestep2,:V] # The total number of the population, for accurancy check
         end
     end
 end
