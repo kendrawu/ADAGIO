@@ -284,7 +284,7 @@ function fn_transmit_network(G, par_hh, par_community, hhnum, communitynum, nsta
                 if hhnum[i] == hhnum[j]
                     P[i,j] = rand(Bernoulli(par_community[1,:tprob_within]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_within]),1)[1]
                 else
-                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_within]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_within]),1)[1]
+                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_within]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_between]),1)[1]
                 end
             else
                 if hhnum[i] == hhnum[j]
