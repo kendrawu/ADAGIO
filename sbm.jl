@@ -117,7 +117,7 @@ function fn_partition(communitysize)
     if size(community_partition,1) >= 2
         for nodenum in 1:(sum(communitysize))
             for q2 in 2:(size(communitysize,1))
-                if (nodenum >= community_partition[q2-1]) && (nodenum <= community_partition[q2])
+                if (nodenum > community_partition[q2-1]) && (nodenum <= community_partition[q2])
                     clusternum[nodenum] = q2
                 end
             end
