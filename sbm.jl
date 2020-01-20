@@ -17,7 +17,7 @@ using DelimitedFiles
 using Plots
 
 # Set parameter values
-N = 500 # Total population size
+N = 10000 # Total population size
 endtime = 200.0 # Duration of simulation (timestep is in a unit of days)
 S0 = N # Number of suspectible people in the population at day 0
 V0 = 0 # Number of vaccinated individuals in the population at day 0
@@ -33,7 +33,7 @@ init_seir = DataFrame(s=S0-casenum0, e=0, i=casenum0, r=0, v=V0) # Initial state
 # hcprob_between: Probability of contacts of an edge between two nodes in different households/ small clusters
 # htprob_within: Probability of transmission of an edge between two nodes in the same household/ small cluster
 # htprob_between: Probability of transmission of an edge between two nodes in different households/ small clusters
-par_hh = DataFrame(hhnum=150, hhsize_avg=3, hhsize_range=2, hcprob_within=1, hcprob_between=0.6, htprob_within=0.8, htprob_between=0.5)
+par_hh = DataFrame(hhnum=3000, hhsize_avg=3, hhsize_range=2, hcprob_within=1, hcprob_between=0.6, htprob_within=0.8, htprob_between=0.5)
 
 ## The clustered network
 # communitynum: Number of communities in the clustered network
@@ -43,7 +43,7 @@ par_hh = DataFrame(hhnum=150, hhsize_avg=3, hhsize_range=2, hcprob_within=1, hcp
 # cprob_between: Probability of contacts of an edge between two nodes in different communities
 # tprob_within: Probability of transmission of an edge between two nodes in the same community
 # tprob_between: Probability of transmission of an edge between two nodes in different communities
-par_community = DataFrame(communitynum=4, communitysize_avg=100, communitysize_range=20, cprob_within=0.4, cprob_between=0.1, tprob_within=0.03, tprob_between=0.01)
+par_community = DataFrame(communitynum=100, communitysize_avg=100, communitysize_range=40, cprob_within=0.4, cprob_between=0.1, tprob_within=0.03, tprob_between=0.01)
 
 ## Disease properties
 # Use Ebola-like parameters (from Hitchings (2018)) - Gamma-distributed
@@ -51,11 +51,17 @@ par_disease = DataFrame(incubperiod_shape=3.11, incubperiod_rate=0.32, infectper
 
 # Initializations
 #beta_t = ones(round(Int,endtime+1)) #Initialize beta_t
-nstatus = convert(DataFrame,Array{Union{Missing, String}}(missing, N, round(Int,endtime))) # Holds the health statuses of all the individuals in the population at each time step
+nstatus = Array{Union{Missing, String}}(missing, N, round(Int,endtime))
+#nstatus = convert(DataFrame,Array{Union{Missing, String}}(missing, N, round(Int,endtime))) # Holds the health statuses of all the individuals in the population at each time step
 for r1=1:N, r2=1:round(Int,endtime)
     nstatus[r1,r2] = "S" # Set the initial health status as "S" for everyone in the population at all time steps
 end
-nstatus = insertcols!(nstatus, 1, nodes_name=1:N) # Insert a column with column name nodes_name and values as 1:N
+# Insert a column with values 1:N
+m = zeros(Int,N)
+for idx = 1:N
+    m[idx] = idx
+end
+nstatus = hcat(m, nstatus)
 sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime)), N=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
 V = zeros(Int,V0) # V contains nodes_name of the vaccinated individuals, to be obtained from Cambridge
 
@@ -211,11 +217,11 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
         #end
 
         for index3 in (round(Int,tbound1)):(round(Int,tbound2))
-            nstatus[importcases,index3+1] = "I"
+            nstatus[importcases[index1],index3+1] = "I"
         end
 
         for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
-            nstatus[importcases,index4+1] = "R"
+            nstatus[importcases[index1],index4+1] = "R"
         end
     end
 
@@ -345,7 +351,7 @@ function fn_uniqueS(nonzeros_indexes, nstatus, timestep)
     for i in 1:(size(nonzeros_indexes,1))
         # Obtain nodes_name if nonzeros_indexes[i]'s status is susceptible at time=(timestep+1)
         if nstatus[nonzeros_indexes[i],timestep+1] == "S"
-            indexes_tmp[r] = nstatus[nonzeros_indexes[i],:nodes_name]
+            indexes_tmp[r] = nstatus[nonzeros_indexes[i],:1]
             r += 1
         end
     end
