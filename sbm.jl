@@ -17,7 +17,7 @@ using DelimitedFiles
 using Plots
 
 # Set parameter values
-N = 10000 # Total population size
+N = 500 # Total population size
 endtime = 200.0 # Duration of simulation (timestep is in a unit of days)
 S0 = N # Number of suspectible people in the population at day 0
 V0 = 0 # Number of vaccinated individuals in the population at day 0
@@ -444,7 +444,7 @@ G = fn_contact_network(par_hh, par_community, hhsize, communitysize, hhnum, comm
     sbm_sol[timestep3,:I] = D[1,:I] # Put I value into the appropriate cell
     sbm_sol[timestep3,:R] = D[1,:R] # Put R value into the appropriate cell
     sbm_sol[timestep3,:V] = D[1,:V] # Put V value into the appropriate cell
-    sbm_sol[timestep3,:N] = sbm_sol[timestep3,:S] + sbm_sol[timestep3,:E] + sbm_sol[timestep3,:I] + sbm_sol[timestep3,:R] + sbm_sol[timestep3,:V] # The total number of the population, for accurancy check
+    #sbm_sol[timestep3,:N] = sbm_sol[timestep3,:S] + sbm_sol[timestep3,:E] + sbm_sol[timestep3,:I] + sbm_sol[timestep3,:R] + sbm_sol[timestep3,:V] # The total number of the population, for accurancy check
 
 # Begin transmission
 for timestep1 in 2:(round(Int,endtime))
@@ -482,7 +482,7 @@ for timestep1 in 2:(round(Int,endtime))
             sbm_sol[timestep2,:I] = D[1,:I] # Put I value into the appropriate cell
             sbm_sol[timestep2,:R] = D[1,:R] # Put R value into the appropriate cell
             sbm_sol[timestep2,:V] = D[1,:V] # Put V value into the appropriate cell
-            sbm_sol[timestep2,:N] = sbm_sol[timestep2,:S] + sbm_sol[timestep2,:E] + sbm_sol[timestep2,:I] + sbm_sol[timestep2,:R] + sbm_sol[timestep2,:V] # The total number of the population, for accurancy check
+            #sbm_sol[timestep2,:N] = sbm_sol[timestep2,:S] + sbm_sol[timestep2,:E] + sbm_sol[timestep2,:I] + sbm_sol[timestep2,:R] + sbm_sol[timestep2,:V] # The total number of the population, for accurancy check
         end
     end
 end
