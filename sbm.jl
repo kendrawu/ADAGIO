@@ -1,6 +1,6 @@
 # Stochastic block network model
 # Author: Kendra Wu
-# Date: 16 January 2020
+# Date: 20 January 2020
 
 # Simulates disease transmission of a 3-level clustered network with contact structure and imported cases at random time and clusters based on stochastic block model (SBM) using Ebola-like parameters from Hitchings et al (2018).
 
@@ -53,7 +53,7 @@ par_disease = DataFrame(incubperiod_shape=3.11, incubperiod_rate=0.32, infectper
 nstatus = fill("S", N, round(Int,endtime))
 nstatus = hcat([1:1:N;], nstatus)
 sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
-V = zeros(Int,V0) # V contains nodes_name of the vaccinated individuals, to be obtained from Cambridge
+V = zeros(Int8,V0) # V contains nodes_name of the vaccinated individuals, to be obtained from Cambridge
 
 # Function to return the sizes of households or communities
 function fn_par_cluster(N, par_hh, par_community, clustertype)
@@ -73,13 +73,13 @@ function fn_par_cluster(N, par_hh, par_community, clustertype)
         clustersize = zeros(Int, par_hh[1,:hhnum]) # Holds the values of the sizes of the households
         clustersize_avg_mat = [(par_hh[1,:hhsize_avg]) for i=1:par_hh[1,:hhnum]]
         clusterrandom_mat = rand(Uniform(-par_hh[1,:hhsize_range]/2,par_hh[1,:hhsize_range]/2), (par_hh[1,:hhnum], par_hh[1,:hhnum])) # Obtain a random household size value based on uniform distribution
-        clusterrandom_mat = round.(Int, clusterrandom_mat)
+        clusterrandom_mat = round.(Int8, clusterrandom_mat)
     elseif clustertype == "community"
         clusternum = par_community[1,:communitynum]
         clustersize = zeros(Int, par_community[1,:communitynum]) # Holds the values of the sizes of the clusters
         clustersize_avg_mat = [(par_community[1,:communitysize_avg]) for i=1:par_community[1,:communitynum]]
         clusterrandom_mat = rand(Uniform(-par_community[1,:communitysize_range]/2,par_community[1,:communitysize_range]/2), (par_community[1,:communitynum], par_community[1,:communitynum])) # Obtain a random community size value based on uniform distribution
-        clusterrandom_mat = round.(Int, clusterrandom_mat)
+        clusterrandom_mat = round.(Int8, clusterrandom_mat)
     else
         throw(ArgumentError("The decision variable needs to be either household or community."))
     end
@@ -150,7 +150,7 @@ function fn_importcases_timeseries(import_lambda, casenum0, endtime)
     # importcasenum_timeseries: node_names of imported cases on a time series for the duration of the outbreak
 
     # Initialization
-    importcasenum_timeseries = zeros(Int, (round(Int,endtime)))
+    importcasenum_timeseries = zeros(Int8, (round(Int,endtime)))
 
     for t = 1:(round(Int,endtime))
         if t == 1
@@ -211,80 +211,80 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
 end
 
 # Function to construct and return the who-contact-whom using stochastic block model
-function fn_contact_network(par_hh, par_community, hhsize, communitysize, hhnum, communitynum)
+function fn_contact_network(par_hh, par_community, hhsize_arr, communitysize_arr, hhnum_arr, communitynum_arr)
 
     # Inputs:
     # par_hh: User-defined parameters of households
     # par_community: User-defined parameters of the networked communities
-    # hhsize: Sizes of each household
-    # communitysize: Sizes of each community
-    # hhnum: Household number of each individuals in the population
-    # communitynum: Community number of each individuals in the population
+    # hhsize_arr: Sizes of each household
+    # communitysize_arr: Sizes of each community
+    # hhnum_arr: Household number of each individuals in the population
+    # communitynum_arr: Community number of each individuals in the population
 
     # Output:
-    # G: The who-contact-whom stochastic block matrix graph
+    # Gc: The who-contact-whom stochastic block matrix graph
 
     # Initialization
-    G = zeros(Int8, sum(communitysize), sum(communitysize))
+    Gc = zeros(Int8, sum(communitysize_arr), sum(communitysize_arr))
 
     # Construct a who-contact-whom stochastic block matrix graph
-    for i = 1:sum(communitysize), j = 1:sum(communitysize)
-        if communitynum[i] == communitynum[j] # Check if infector and infectee are from the same community
-            if hhnum[i] == hhnum[j] # Check if infector and infectee are from the same houseshold
-                G[i,j] = rand(Poisson(par_community[1,:cprob_within]),1)[1] * rand(Poisson(par_hh[1,:hcprob_within]),1)[1]
+    for i = 1:sum(communitysize_arr), j = 1:sum(communitysize_arr)
+        if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
+            if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same houseshold
+                Gc[i,j] = rand(Poisson(par_community[1,:cprob_within]),1)[1] * rand(Poisson(par_hh[1,:hcprob_within]),1)[1]
             else
-                G[i,j] = rand(Poisson(par_community[1,:cprob_within]),1)[1] * rand(Poisson(par_hh[1,:hcprob_between]),1)[1]
+                Gc[i,j] = rand(Poisson(par_community[1,:cprob_within]),1)[1] * rand(Poisson(par_hh[1,:hcprob_between]),1)[1]
             end
         else
-            if hhnum[i] == hhnum[j] # Check if infector and infectee are from the same houseshold
-                G[i,j] = rand(Poisson(par_community[1,:cprob_between]),1)[1] * rand(Poisson(par_hh[1,:hcprob_within]),1)[1]
+            if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same houseshold
+                Gc[i,j] = rand(Poisson(par_community[1,:cprob_between]),1)[1] * rand(Poisson(par_hh[1,:hcprob_within]),1)[1]
             else
-                G[i,j] = rand(Poisson(par_community[1,:cprob_between]),1)[1] * rand(Poisson(par_hh[1,:hcprob_between]),1)[1]
+                Gc[i,j] = rand(Poisson(par_community[1,:cprob_between]),1)[1] * rand(Poisson(par_hh[1,:hcprob_between]),1)[1]
             end
         end
     end
 
-    return G
+    return Gc
 end
 
 # Function to construct and return the who-infect-whom stochastic block matrix
-function fn_transmit_network(G, par_hh, par_community, hhnum, communitynum, nstatus, timestep)
+function fn_transmit_network(Gc, par_hh, par_community, hhnum_arr, communitynum_arr, nstatus, timestep)
 
     # Inputs:
-    # G: The who-contact-whom stochastic block matrix graph
+    # Gc: The who-contact-whom stochastic block matrix graph
     # par_hh: User-defined parameters of the households
     # par_community: User-defined parameters of the network community
-    # hhnum: Holds the household number of each individuals in the population
-    # communitynum: Holds the community number of each individuals in the population
+    # hhnum_arr: Holds the household number of each individuals in the population
+    # communitynum_arr: Holds the community number of each individuals in the population
     # nstatus: Health statuses of all individuals in the population at each time step
     # timestep: The time t of the outbreak
 
     # Output:
-    # P: The who-infect-whom stochastic block matrix graph
+    # Gt: The who-infect-whom stochastic block matrix graph
 
     # Initialization
-    P = zeros(Int8, size(G,1), size(G,2))
+    Gt = zeros(Int8, size(Gc,1), size(Gc,2))
 
     # Construct a who-infect-whom stochastic block matrix graph
-    for i = 1:size(G,1), j =1:size(G,2)
-        if G[i,j] != 0 && nstatus[i,timestep+1] == "I" # Check if there is a contact edge between the pair and if the infector is infectious
-            if communitynum[i] == communitynum[j] # Check if infector and infectee are from the same cluster
-                if hhnum[i] == hhnum[j]
-                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_within]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_within]),1)[1]
+    for i = 1:size(Gc,1), j =1:size(Gc,2)
+        if Gc[i,j] != 0 && nstatus[i,timestep+1] == "I" # Check if there is a contact edge between the pair and if the infector is infectious
+            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same cluster
+                if hhnum_arr[i] == hhnum_arr[j]
+                    Gt[i,j] = rand(Bernoulli(par_community[1,:tprob_within]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_within]),1)[1]
                 else
-                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_within]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_between]),1)[1]
+                    Gt[i,j] = rand(Bernoulli(par_community[1,:tprob_within]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_between]),1)[1]
                 end
             else
-                if hhnum[i] == hhnum[j]
-                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_between]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_within]),1)[1]
+                if hhnum_arr[i] == hhnum_arr[j]
+                    Gt[i,j] = rand(Bernoulli(par_community[1,:tprob_between]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_within]),1)[1]
                 else
-                    P[i,j] = rand(Bernoulli(par_community[1,:tprob_between]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_between]),1)[1]
+                    Gt[i,j] = rand(Bernoulli(par_community[1,:tprob_between]),1)[1] * rand(Bernoulli(par_hh[1,:htprob_between]),1)[1]
                 end
             end
         end
     end
 
-    return P
+    return Gt
 end
 
 # Function to find the indexes that are non-zeros
@@ -303,8 +303,8 @@ function fn_findnonzeros(M)
     # Find index numbers in P that are non-zeros, which indicates the probability of transmission between indexes i and j are non-zeros
     for i = 1:size(M,1), j = 1:size(M,2)
         if M[i,j] != 0
-            push!(network_index_arr1::Array{Int64,1},i)
-            push!(network_index_arr2::Array{Int64,1},j)
+            push!(network_index_arr1::Array{Int,1},i)
+            push!(network_index_arr2::Array{Int,1},j)
         end
     end
 
@@ -346,7 +346,7 @@ function fn_uniqueS(nonzeros_indexes, nstatus, timestep)
         unique_indexes = sample(indexes_tmp, bound, replace=false)
         return unique_indexes
     else
-        unique_indexes = Int[]
+        unique_indexes = Int8[]
         return unique_indexes
     end
 end
@@ -417,16 +417,16 @@ end
 
 # Main algorithm
 # Compute the parameters of the clusters
-hhsize = fn_par_cluster(N, par_hh, par_community, "household") # Define the sizes of each household
-hhnum = fn_partition(hhsize) # Assign household number to each individual in the population
-communitysize = fn_par_cluster(N, par_hh, par_community, "community") # Define the sizes of each community
-communitynum = fn_partition(communitysize) # Assign community number to each individual in the population
+hhsize_arr = fn_par_cluster(N, par_hh, par_community, "household") # Define the sizes of each household
+hhnum_arr = fn_partition(hhsize_arr) # Assign household number to each individual in the population
+communitysize_arr = fn_par_cluster(N, par_hh, par_community, "community") # Define the sizes of each community
+communitynum_arr = fn_partition(communitysize_arr) # Assign community number to each individual in the population
 
 # Generate the number of imported cases for the duration of the outbreak
 importcasenum_timeseries = fn_importcases_timeseries(import_lambda, casenum0, endtime)
 
 # Compute who-contact-whom network graphs
-G = fn_contact_network(par_hh, par_community, hhsize, communitysize, hhnum, communitynum) # Construct a who-contact-whom stochastic block network
+Gc = fn_contact_network(par_hh, par_community, hhsize_arr, communitysize_arr, hhnum_arr, communitynum_arr) # Construct a who-contact-whom stochastic block network
 
     timestep3 = 1
     nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t-timestep3
@@ -453,8 +453,8 @@ for timestep1 in 2:(round(Int,endtime))
         nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep1)
     end
 
-    P = fn_transmit_network(G, par_hh, par_community, hhnum, communitynum, nstatus, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
-    potential_transmit_indexes = fn_findnonzeros(P) # The index numbers that will have disease transmission according to the stochastic block network model
+    Gt = fn_transmit_network(Gc, par_hh, par_community, hhnum_arr, communitynum_arr, nstatus, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
+    potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
     transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus, timestep1) # Check if potential_transmit_indexes are susceptibles
 
     if size(transmit_indexes,1)>0 # Check if there are infectees
