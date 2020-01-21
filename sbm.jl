@@ -33,7 +33,7 @@ init_seir = DataFrame(s=S0-casenum0, e=0, i=casenum0, r=0, v=V0) # Initial state
 # hcprob_between: Probability of contacts of an edge between two nodes in different households/ small clusters
 # htprob_within: Probability of transmission of an edge between two nodes in the same household/ small cluster
 # htprob_between: Probability of transmission of an edge between two nodes in different households/ small clusters
-par_hh = DataFrame(hhnum=3000, hhsize_avg=3, hhsize_range=2, hcprob_within=1, hcprob_between=0.6, htprob_within=0.8, htprob_between=0.5)
+par_hh = DataFrame(hhnum=150, hhsize_avg=3, hhsize_range=2, hcprob_within=1, hcprob_between=0.6, htprob_within=0.8, htprob_between=0.5)
 
 ## The clustered network
 # communitynum: Number of communities in the clustered network
@@ -43,35 +43,17 @@ par_hh = DataFrame(hhnum=3000, hhsize_avg=3, hhsize_range=2, hcprob_within=1, hc
 # cprob_between: Probability of contacts of an edge between two nodes in different communities
 # tprob_within: Probability of transmission of an edge between two nodes in the same community
 # tprob_between: Probability of transmission of an edge between two nodes in different communities
-par_community = DataFrame(communitynum=100, communitysize_avg=100, communitysize_range=40, cprob_within=0.4, cprob_between=0.1, tprob_within=0.03, tprob_between=0.01)
+par_community = DataFrame(communitynum=4, communitysize_avg=100, communitysize_range=20, cprob_within=0.4, cprob_between=0.1, tprob_within=0.03, tprob_between=0.01)
 
 ## Disease properties
 # Use Ebola-like parameters (from Hitchings (2018)) - Gamma-distributed
 par_disease = DataFrame(incubperiod_shape=3.11, incubperiod_rate=0.32, infectperiod_shape=1.13, infectperiod_rate=0.226)
 
 # Initializations
-#beta_t = ones(round(Int,endtime+1)) #Initialize beta_t
-nstatus = Array{Union{Missing, String}}(missing, N, round(Int,endtime))
-#nstatus = convert(DataFrame,Array{Union{Missing, String}}(missing, N, round(Int,endtime))) # Holds the health statuses of all the individuals in the population at each time step
-for r1=1:N, r2=1:round(Int,endtime)
-    nstatus[r1,r2] = "S" # Set the initial health status as "S" for everyone in the population at all time steps
-end
-# Insert a column with values 1:N
-m = zeros(Int,N)
-for idx = 1:N
-    m[idx] = idx
-end
-nstatus = hcat(m, nstatus)
-sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime)), N=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
+nstatus = fill("S", N, round(Int,endtime))
+nstatus = hcat([1:1:N;], nstatus)
+sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
 V = zeros(Int,V0) # V contains nodes_name of the vaccinated individuals, to be obtained from Cambridge
-
-# Function to return rate of transmission, beta
-function fn_beta(beta,p,t)
-    for t = 1: (trunc(Int,tspan[2])+1)
-        # p[1]=betahat; p[2]=a1; p[3]=a2; p[4]=atau; p[5]=sigma; p[6]=gamma
-        beta[t] = p[1] * (1 - p[3]/(1 + exp(-p[2] * (t - p[4]))))
-    end
-end
 
 # Function to return the sizes of households or communities
 function fn_par_cluster(N, par_hh, par_community, clustertype)
@@ -243,7 +225,7 @@ function fn_contact_network(par_hh, par_community, hhsize, communitysize, hhnum,
     # G: The who-contact-whom stochastic block matrix graph
 
     # Initialization
-    G = zeros(Int64, sum(communitysize), sum(communitysize))
+    G = zeros(Int8, sum(communitysize), sum(communitysize))
 
     # Construct a who-contact-whom stochastic block matrix graph
     for i = 1:sum(communitysize), j = 1:sum(communitysize)
@@ -281,7 +263,7 @@ function fn_transmit_network(G, par_hh, par_community, hhnum, communitynum, nsta
     # P: The who-infect-whom stochastic block matrix graph
 
     # Initialization
-    P = zeros(Int64, size(G,1), size(G,2))
+    P = zeros(Int8, size(G,1), size(G,2))
 
     # Construct a who-infect-whom stochastic block matrix graph
     for i = 1:size(G,1), j =1:size(G,2)
