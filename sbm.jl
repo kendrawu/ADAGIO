@@ -12,6 +12,7 @@ using SpecialFunctions # For generating gamma distribution
 using LinearAlgebra
 using Distributions
 using StatsBase # To use sample
+#using Graphs
 using CSV, DataFrames
 using DelimitedFiles
 using Plots
@@ -43,7 +44,7 @@ par_hh = DataFrame(hhnum=150, hhsize_avg=3, hhsize_range=2, hcprob_within=1, hcp
 # cprob_between: Probability of contacts of an edge between two nodes in different communities
 # tprob_within: Probability of transmission of an edge between two nodes in the same community
 # tprob_between: Probability of transmission of an edge between two nodes in different communities
-par_community = DataFrame(communitynum=4, communitysize_avg=100, communitysize_range=20, cprob_within=0.4, cprob_between=0.1, tprob_within=0.03, tprob_between=0.01)
+par_community = DataFrame(communitynum=3, communitysize_avg=100, communitysize_range=20, cprob_within=0.4, cprob_between=0.1, tprob_within=0.03, tprob_between=0.01)
 
 ## Disease properties
 # Use Ebola-like parameters (from Hitchings (2018)) - Gamma-distributed
@@ -51,7 +52,7 @@ par_disease = DataFrame(incubperiod_shape=3.11, incubperiod_rate=0.32, infectper
 
 # Initializations
 nstatus = fill("S", N, round(Int,endtime))
-nstatus = hcat([1:1:N;], nstatus)
+nstatus = hcat([1:1:N;], nstatus) # Put indexes on the 1st column
 sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
 V = zeros(Int8,V0) # V contains nodes_name of the vaccinated individuals, to be obtained from Cambridge
 
@@ -65,18 +66,18 @@ function fn_par_cluster(N, par_hh, par_community, clustertype)
     # clustertype: to decide whether we compute the sizes of households or communities in the network
 
     # Output:
-    # clustersize: Sizes of each cluster, whether they are households (hh) or communities
+    # clustersize_arr: Sizes of each cluster, whether they are households (hh) or communities
 
     # Assign parameter values
     if clustertype == "household"
         clusternum = par_hh[1,:hhnum]
-        clustersize = zeros(Int, par_hh[1,:hhnum]) # Holds the values of the sizes of the households
+        clustersize_arr = zeros(Int, par_hh[1,:hhnum]) # Holds the values of the sizes of the households
         clustersize_avg_mat = [(par_hh[1,:hhsize_avg]) for i=1:par_hh[1,:hhnum]]
         clusterrandom_mat = rand(Uniform(-par_hh[1,:hhsize_range]/2,par_hh[1,:hhsize_range]/2), (par_hh[1,:hhnum], par_hh[1,:hhnum])) # Obtain a random household size value based on uniform distribution
         clusterrandom_mat = round.(Int8, clusterrandom_mat)
     elseif clustertype == "community"
         clusternum = par_community[1,:communitynum]
-        clustersize = zeros(Int, par_community[1,:communitynum]) # Holds the values of the sizes of the clusters
+        clustersize_arr = zeros(Int, par_community[1,:communitynum]) # Holds the values of the sizes of the clusters
         clustersize_avg_mat = [(par_community[1,:communitysize_avg]) for i=1:par_community[1,:communitynum]]
         clusterrandom_mat = rand(Uniform(-par_community[1,:communitysize_range]/2,par_community[1,:communitysize_range]/2), (par_community[1,:communitynum], par_community[1,:communitynum])) # Obtain a random community size value based on uniform distribution
         clusterrandom_mat = round.(Int8, clusterrandom_mat)
@@ -84,58 +85,63 @@ function fn_par_cluster(N, par_hh, par_community, clustertype)
         throw(ArgumentError("The decision variable needs to be either household or community."))
     end
 
+    # Check if inputs are valid
+    if clusternum<1
+        throw(ArgumentError("The number of cluster needs to be at least 1."))
+    end
+
     # Determine the size of each cluster
     for i in 1:clusternum
         if i != clusternum
-            clustersize[i] = clustersize_avg_mat[i] + clusterrandom_mat[i,i]
+            clustersize_arr[i] = clustersize_avg_mat[i] + clusterrandom_mat[i,i]
         else
-            if (sum(clustersize))>N
+            if (sum(clustersize_arr))>N
                 throw(ArgumentError("Not enough people to partition them into all the clusters. Please rerun the simulation or consider lowering the number of clusters/ increasing N."))
             else
-                clustersize[i] = N - sum(clustersize[1:(i-1)])
+                clustersize_arr[i] = N - sum(clustersize_arr[1:(i-1)])
             end
         end
     end
 
-    return clustersize
+    return clustersize_arr
 end
 
 # Function to define which node goes to which cluster and return a list of the cluster number
-function fn_partition(clustersize)
+function fn_partition(clustersize_arr)
 
     # Input:
-    # clustersize: Sizes of each cluster
+    # clustersize_arr: Sizes of each cluster
 
     # Output:
-    # clusternum: Cluster number of each individual in the population
+    # clusternum_arr: Cluster number of each individual in the population
 
     # Initialization
-    cluster_partition = zeros(Int, size(clustersize,1))
+    cluster_partition_arr = zeros(Int, size(clustersize_arr,1))
 
-    for i = 1: (size(clustersize,1))
-        cluster_partition[i] = clustersize[i]
+    for i = 1: (size(clustersize_arr,1))
+        cluster_partition_arr[i] = clustersize_arr[i]
     end
-    clusternum = ones(Int, sum(clustersize))
+    clusternum_arr = ones(Int, sum(clustersize_arr))
 
     # Define the node numbers where partitions occur
-    if size(clustersize,1) >= 2
-        for q1 in 2:(size(clustersize,1))
-            cluster_partition[q1] = cluster_partition[q1-1] + clustersize[q1]
+    if size(clustersize_arr,1) >= 2
+        for q1 in 2:(size(clustersize_arr,1))
+            cluster_partition_arr[q1] = cluster_partition_arr[q1-1] + clustersize_arr[q1]
         end
     end
 
     # Distribute the individuals into clusters according to their node number
-    if size(cluster_partition,1) >= 2
-        for nodenum in 1:(sum(clustersize))
-            for q2 in 2:(size(clustersize,1))
-                if (nodenum > cluster_partition[q2-1]) && (nodenum <= cluster_partition[q2])
-                    clusternum[nodenum] = q2
+    if size(cluster_partition_arr,1) >= 2
+        for nodenum in 1:(sum(clustersize_arr))
+            for q2 in 2:(size(clustersize_arr,1))
+                if (nodenum > cluster_partition_arr[q2-1]) && (nodenum <= cluster_partition_arr[q2])
+                    clusternum_arr[nodenum] = q2
                 end
             end
         end
     end
 
-    return clusternum
+    return clusternum_arr
 end
 
 # Function to generate node_names of imported cases on a time series, assumed to be poisson distributed
