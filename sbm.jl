@@ -44,7 +44,7 @@ par_community = DataFrame(communitynum=3, communitysize_avg=100, communitysize_r
 # tprob_hhwithin_cwithin: Probability of transmission of an edge between two nodes in the same household and the same community
 # tprob_hhbetween_cwithin: Probability of contacts of an edge between two nodes in different households but the same community
 # tprob_hhbetween_cbetween: Probability of contacts of an edge between two nodes in different communities
-par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=0.6, cprob_hhbetween_cbetween=0.8, tprob_hhwithin_cwithin=0.6, tprob_hhbetween_cwithin=0.003, tprob_hhbetween_cbetween=0.0001)
+par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=0.3, cprob_hhbetween_cbetween=0.05, tprob_hhwithin_cwithin=0.5, tprob_hhbetween_cwithin=0.003, tprob_hhbetween_cbetween=0.0001)
 
 ## Disease properties
 # Use Ebola-like parameters (from Hitchings (2018)) - Gamma-distributed
