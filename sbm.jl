@@ -12,7 +12,7 @@ using SpecialFunctions # For generating gamma distribution
 using LinearAlgebra
 using Distributions
 using StatsBase # To use sample
-#using Graphs
+using Roots
 using CSV, DataFrames
 using DelimitedFiles
 using Plots
@@ -22,20 +22,22 @@ N = 500 # Total population size
 endtime = 200.0 # Duration of simulation (timestep is in a unit of days)
 S0 = N # Number of suspectible people in the population at day 0
 V0 = 0 # Number of vaccinated individuals in the population at day 0
-casenum0 = 10 # Number of infectious individuals introduced into the community to begin the outbreak
+casenum0 = 1 # Number of infectious individuals introduced into the community to begin the outbreak
+immunenum0 = 0 # Number of people who are immune to the disease at the beginning of the outbreak
 import_lambda = .05 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
+lambda0 = 0.001 # Per-time-step harzard of infection for a susceptible nodes from an infectious neighbour
 
 ## The households
 # hhnum: Number of households in the network
 # hhsize_avg: Average size of one household
 # hhsize_range: Range of household sizes (sizes are uniformly distributed)
-par_hh = DataFrame(hhnum=150, hhsize_avg=3, hhsize_range=2)
+par_hh = DataFrame(hhnum=1, hhsize_avg=500, hhsize_range=0)
 
 ## The clustered network
 # communitynum: Number of communities in the clustered network
-# communitysize_avg: Average size of one clustered community
+# communitysize_avg: Average size of one community
 # communitysize_range: Range of community sizes (sizes are uniformly distributed)
-par_community = DataFrame(communitynum=3, communitysize_avg=100, communitysize_range=20)
+par_community = DataFrame(communitynum=1, communitysize_avg=500, communitysize_range=0)
 
 ## Contact and transmission probabilities between nodes
 # cprob_hhwithin_cwithin: Probability of contacts of an edge between two nodes in the same household and the same community
@@ -44,7 +46,7 @@ par_community = DataFrame(communitynum=3, communitysize_avg=100, communitysize_r
 # tprob_hhwithin_cwithin: Probability of transmission of an edge between two nodes in the same household and the same community
 # tprob_hhbetween_cwithin: Probability of contacts of an edge between two nodes in different households but the same community
 # tprob_hhbetween_cbetween: Probability of contacts of an edge between two nodes in different communities
-par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=0.3, cprob_hhbetween_cbetween=0.05, tprob_hhwithin_cwithin=0.5, tprob_hhbetween_cwithin=0.003, tprob_hhbetween_cbetween=0.0001)
+par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_hhbetween_cbetween=1, tprob_hhwithin_cwithin=lambda0, tprob_hhbetween_cwithin=lambda0, tprob_hhbetween_cbetween=lambda0)
 
 ## Disease properties
 # Use Ebola-like parameters (from Hitchings (2018)) - Gamma-distributed
@@ -54,6 +56,7 @@ par_disease = DataFrame(incubperiod_shape=3.11, incubperiod_rate=0.32, infectper
 nstatus = fill("S", N, round(Int,endtime))
 nstatus = hcat([1:1:N;], nstatus) # Put indexes on the 1st column
 sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
+T_arr = zeros(round(Int,endtime))
 V = zeros(Int8,V0) # V contains nodes_name of the vaccinated individuals, to be obtained from Cambridge
 
 # Function to return the sizes of households or communities
@@ -73,13 +76,21 @@ function fn_par_cluster(N, par_hh, par_community, clustertype)
         clusternum = par_hh[1,:hhnum]
         clustersize_arr = zeros(Int, par_hh[1,:hhnum]) # Holds the values of the sizes of the households
         clustersize_avg_mat = [(par_hh[1,:hhsize_avg]) for i=1:par_hh[1,:hhnum]]
-        clusterrandom_mat = rand(Uniform(-par_hh[1,:hhsize_range]/2,par_hh[1,:hhsize_range]/2), (par_hh[1,:hhnum], par_hh[1,:hhnum])) # Obtain a random household size value based on uniform distribution
+        if par_hh[1,:hhsize_range] != 0
+            clusterrandom_mat = rand(Uniform(-par_hh[1,:hhsize_range]/2,par_hh[1,:hhsize_range]/2), (par_hh[1,:hhnum], par_hh[1,:hhnum])) # Obtain a random household size value based on uniform distribution
+        else
+            clusterrandom_mat = zeros(Int, par_hh[1,:hhnum])
+        end
         clusterrandom_mat = round.(Int8, clusterrandom_mat)
     elseif clustertype == "community"
         clusternum = par_community[1,:communitynum]
         clustersize_arr = zeros(Int, par_community[1,:communitynum]) # Holds the values of the sizes of the clusters
         clustersize_avg_mat = [(par_community[1,:communitysize_avg]) for i=1:par_community[1,:communitynum]]
-        clusterrandom_mat = rand(Uniform(-par_community[1,:communitysize_range]/2,par_community[1,:communitysize_range]/2), (par_community[1,:communitynum], par_community[1,:communitynum])) # Obtain a random community size value based on uniform distribution
+        if par_community[1,:communitysize_range] != 0
+            clusterrandom_mat = rand(Uniform(-par_community[1,:communitysize_range]/2,par_community[1,:communitysize_range]/2), (par_community[1,:communitynum], par_community[1,:communitynum])) # Obtain a random community size value based on uniform distribution
+        else
+            clusterrandom_mat = zeros(Int, par_community[1,:communitynum])
+        end
         clusterrandom_mat = round.(Int8, clusterrandom_mat)
     else
         throw(ArgumentError("The decision variable needs to be either household or community."))
@@ -168,7 +179,7 @@ function fn_importcases_timeseries(import_lambda, casenum0, endtime)
     return importcasenum_timeseries
 end
 
-# Function to generate imported cases and randomly distribute them into different clusters (at timestep=1, for now)
+# Function to generate imported cases and randomly distribute them into different clusters
 function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep)
 
     # Inputs:
@@ -191,8 +202,8 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
         # Compute the parameters for disease properties
         incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
         infectperiod_avg = ceil(par_disease[1,:infectperiod_shape]/par_disease[1,:infectperiod_rate])
-        incubperiod = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1) #Incubation period of the disease
-        infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),1) #Infectious period of the disease
+        incubperiod = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1) # Incubation period of the disease
+        infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),1) # Infectious period of the disease
 
         # Set time boundaries according to incubation and infectious periods, and time should not exceed endtime.
         incubperiod[1] = 0
@@ -200,16 +211,41 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
         tbound2 = min(timestep + ceil(incubperiod[1]) + ceil(infectperiod[1]), endtime)
 
         # column_index start at 2 because nstatus[:,1] is nodes_name
-        #for index2 in timestep:(round(Int,tbound1))
+        # for index2 in timestep:(round(Int,tbound1))
         #    nstatus[importcases[index1],index2+1] = "E"
+        # end
+
+        #if nstatus[importcases[index1],timestep] == "S"
+            for index3 in (round(Int,tbound1)):(round(Int,tbound2))
+                nstatus[importcases[index1],index3+1] = "I"
+            end
+
+            for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
+                nstatus[importcases[index1],index4+1] = "R"
+            end
         #end
 
-        for index3 in (round(Int,tbound1)):(round(Int,tbound2))
-            nstatus[importcases[index1],index3+1] = "I"
-        end
+    end
 
-        for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
-            nstatus[importcases[index1],index4+1] = "R"
+    return nstatus
+end
+
+# Function to generate immune individuals and randomly distribute them into different clusters
+function fn_partialimmune(immunenum0, nstatus)
+
+    # Inputs:
+    # immunenum0: Number of people who are immune to the disease since day 0 of the outbreak
+    # nstatus: Health statuses of all individuals in the population at each time step
+
+    # Output:
+    # nstatus: Health statuses of all individuals in the population at each time step
+
+    # Generate node_names of imported cases at t=timestep
+    immuneppl = sample(1:N, immunenum0, replace=false) # Sampling without replacement
+
+    for index1 in 1:(size(immuneppl,1))
+        for index4 in 1:(round(Int,endtime))
+            nstatus[immuneppl[index1],index4+1] = "R"
         end
     end
 
@@ -249,6 +285,69 @@ function fn_contact_network(par_prob, hhsize_arr, communitysize_arr, hhnum_arr, 
     return Gc
 end
 
+# Function to return the contact list of a infector
+function fn_contactlist(Gc, nstatus, infector_node_name, timestep)
+
+    # Inputs:
+    # Gc: The who-contact-whom stochastic block matrix graph
+    # nstatus: Health statuses of all individuals in the population at each time step
+    # infector_node_name: Holds the node names of an infector
+
+    # Output:
+    # contact_arr: Contact list of an infector
+
+    # Initialization
+    contact_arr = zeros(Int8, N)
+
+    # Find the contact list of infector_node_name
+    if nstatus[infector_node_name, timestep+1] != "I"
+        println("wrong infector_node_name")
+    else
+        contact_arr = findall(x->x!=0, Gc[infector_node_name,:])
+    end
+
+    return contact_arr
+end
+
+# Function to return the contact and contac-of-contacts of an infectious person
+function fn_computeT(par_prob, Gc, nstatus, timestep)
+
+    # Inputs:
+    # par_prob: User-defined contact and transmission probabilities between two nodes
+    # Gc: The who-contact-whom stochastic block matrix graph
+    # nstatus: Health statuses of all individuals in the population at each time step
+    # timestep: The time t of the outbreak
+
+    # Output:
+    # T: Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact at t=timestep
+
+    prob = zeros(N,N)
+    prob_per_infector = zeros(N)
+
+    for i = 1:size(Gc,1), j =1:size(Gc,2)
+        if Gc[i,j] != 0 && nstatus[i,timestep+1] == "I" # Check if there is a contact edge between the pair and if the infector is infectious
+            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
+                if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same household
+                    prob[i,j] = par_prob[1,:tprob_hhwithin_cwithin]
+                else
+                    prob[i,j] = par_prob[1,:tprob_hhbetween_cwithin]
+                end
+            else
+                # Infector and infectee are from different communities, so they cannot be from the same household
+                prob[i,j] = par_prob[1,:tprob_hhbetween_cbetween]
+            end
+        end
+    end
+
+    for q = 1:N
+        prob_per_infector[q] = sum(prob[q,:])
+    end
+
+    filter!(x->~isnan(x),prob_per_infector)
+    T = mean(prob_per_infector)
+    return T
+end
+
 # Function to construct and return the who-infect-whom stochastic block matrix
 function fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus, timestep)
 
@@ -269,8 +368,8 @@ function fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus,
     # Construct a who-infect-whom stochastic block matrix graph
     for i = 1:size(Gc,1), j =1:size(Gc,2)
         if Gc[i,j] != 0 && nstatus[i,timestep+1] == "I" # Check if there is a contact edge between the pair and if the infector is infectious
-            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same cluster
-                if hhnum_arr[i] == hhnum_arr[j]
+            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
+                if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same household
                     Gt[i,j] = rand(Bernoulli(par_prob[1,:tprob_hhwithin_cwithin]),1)[1]
                 else
                     Gt[i,j] = rand(Bernoulli(par_prob[1,:tprob_hhbetween_cwithin]),1)[1]
@@ -410,7 +509,54 @@ function fn_countelements(v)
     u = unique(v)
     d = Dict([(i,count(x->x==i,v)) for i in u])
     D = convert(DataFrame, d)
+
+    D = insertcols!(D, 1, S=0, makeunique=true) # Set S as zero if column does not exist
+    D = insertcols!(D, 1, E=0, makeunique=true) # Set E as zero if column does not exist
+    D = insertcols!(D, 1, I=0, makeunique=true) # Set I as zero if column does not exist
+    D = insertcols!(D, 1, R=0, makeunique=true) # Set R as zero if column does not exist
+    D = insertcols!(D, 1, V=0, makeunique=true) # Set V as zero if column does not exist
+
     return D
+end
+
+# Function to return the average probability that an infectious individual who will transmit the disease to a
+# susceptible individual with whom they have contact
+function fn_computeT(par_prob, Gc, nstatus, timestep)
+
+    # Inputs:
+    # par_prob: User-defined contact and transmission probabilities between two nodes
+    # Gc: The who-contact-whom stochastic block matrix graph
+    # nstatus: Health statuses of all individuals in the population at each time step
+    # timestep: The time t of the outbreak
+
+    # Output:
+    # T: Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact at t=timestep
+
+    prob = zeros(N,N)
+    prob_per_infector = zeros(N)
+
+    for i = 1:size(Gc,1), j =1:size(Gc,2)
+        if Gc[i,j] != 0 && nstatus[i,timestep+1] == "I" # Check if there is a contact edge between the pair and if the infector is infectious
+            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
+                if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same household
+                    prob[i,j] = par_prob[1,:tprob_hhwithin_cwithin]
+                else
+                    prob[i,j] = par_prob[1,:tprob_hhbetween_cwithin]
+                end
+            else
+                # Infector and infectee are from different communities, so they cannot be from the same household
+                prob[i,j] = par_prob[1,:tprob_hhbetween_cbetween]
+            end
+        end
+    end
+
+    for q = 1:N
+        prob_per_infector[q] = sum(prob[q,:])
+    end
+
+    filter!(x->~isnan(x),prob_per_infector)
+    T = mean(prob_per_infector)
+    return T
 end
 
 # Main algorithm
@@ -420,21 +566,21 @@ hhnum_arr = fn_partition(hhsize_arr) # Assign household number to each individua
 communitysize_arr = fn_par_cluster(N, par_hh, par_community, "community") # Define the sizes of each community
 communitynum_arr = fn_partition(communitysize_arr) # Assign community number to each individual in the population
 
-# Generate the number of imported cases for the duration of the outbreak
-importcasenum_timeseries = fn_importcases_timeseries(import_lambda, casenum0, endtime)
+# Generate imported cases for the duration of the outbreak
+importcasenum_timeseries = fn_importcases_timeseries(import_lambda, casenum0, endtime) # for code checking
+importcasenum_timeseries = zeros(Int8,round(Int,endtime))
+importcasenum_timeseries[1]=casenum0
 
 # Compute who-contact-whom network graphs
 Gc = fn_contact_network(par_prob, hhsize_arr, communitysize_arr, hhnum_arr, communitynum_arr) # Construct a who-contact-whom stochastic block network
+contact_arr = fn_contactlist(Gc, nstatus, infector_node_name, timestep)
 
     timestep3 = 1
-    nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t-timestep3
+
+    nstatus = fn_partialimmune(immunenum0, nstatus) # Generate immnue people
+    nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t=timestep3
 
     D = fn_countelements(nstatus[:,timestep3+1]) # Count number of occurrences of SEIRV at a particular t=timestep3
-    D = insertcols!(D, 1, S=0, makeunique=true) # Set S as zero if column does not exist
-    D = insertcols!(D, 1, E=0, makeunique=true) # Set E as zero if column does not exist
-    D = insertcols!(D, 1, I=0, makeunique=true) # Set I as zero if column does not exist
-    D = insertcols!(D, 1, R=0, makeunique=true) # Set R as zero if column does not exist
-    D = insertcols!(D, 1, V=0, makeunique=true) # Set V as zero if column does not exist
 
     # Put these SEIRV incidence values into a DataFrame sbm_sol
     sbm_sol[timestep3,:S] = D[1,:S] # Put S value into the appropriate cell
@@ -453,6 +599,7 @@ for timestep1 in 2:(round(Int,endtime))
     Gt = fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
     potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
     transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus, timestep1) # Check if potential_transmit_indexes are susceptibles
+    global T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus, timestep1)
 
     if size(transmit_indexes,1)>0 # Check if there are infectees
 
@@ -465,11 +612,6 @@ for timestep1 in 2:(round(Int,endtime))
         for timestep2 in 2:(round(Int,endtime))
 
             D = fn_countelements(nstatus[:,timestep2]) # Count number of occurrences of SEIRV at a particular t=timestep2
-            D = insertcols!(D, 1, S=0, makeunique=true) # Set S as zero if column does not exist
-            D = insertcols!(D, 1, E=0, makeunique=true) # Set E as zero if column does not exist
-            D = insertcols!(D, 1, I=0, makeunique=true) # Set I as zero if column does not exist
-            D = insertcols!(D, 1, R=0, makeunique=true) # Set R as zero if column does not exist
-            D = insertcols!(D, 1, V=0, makeunique=true) # Set V as zero if column does not exist
 
             # Put these SEIRV incidence values into a DataFrame sbm_sol
             sbm_sol[timestep2,:S] = D[1,:S] # Put S value into the appropriate cell
@@ -482,8 +624,47 @@ for timestep1 in 2:(round(Int,endtime))
 end
 
 sbm_sol = sbm_sol[1:size(sbm_sol,1) .!= 1,: ] # Delete the dummy row 1 from sbm_sol
-CSV.write("./data/sbm_sol.csv", sbm_sol, writeheader=true) # Write key results into files
 #println(first(sbm_sol,10))
+
+
+
+# Check the algorithm
+# Compute R0 in a network
+k = sum(sum(Gc))/N # mean degree of the network
+T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact
+R0 = T * (k^2/k - 1)
+#println("k = ", k, ", T = ",T, ", and R0 = ",R0)
+
+# Final size
+#CI = zeros(size(communitysize_arr,1))
+#finalsize_cluster = zeros(size(communitysize_arr,1))
+#if R0>1
+#    for i in 1:size(communitysize_arr,1)
+#        CI[i] = 1/(1-R0)/communitysize_arr[i]
+#        finalsize_cluster[i] = 1 - exp(-R0 * CI[i])
+#        finalsize = sum(finalsize_cluster)
+#    end
+#else
+#    finalsize = N-1/(1-R0) # for large population
+#end
+#println(finalsize)
+
+#y = zeros(N)
+#s_infinity = zeros(N)
+# When R0<1
+#if R0>1
+#    finalsize = exp(0)
+#else
+#    for i in 1:N
+#        s_infinity[i] = i
+#        y[i] = log(S0) - log(s_infinity[i]) - R0*(1-s_infinity[i]/N)
+#        if y[i] == 0
+#            finalsize = N-round.(s_infinity[i])
+#        end
+#    end
+#end
+#println(finalsize)
+#plot(y, 1:N, legend=false)
 
 print("Processing time:")
 end #stop timeing the processing time
