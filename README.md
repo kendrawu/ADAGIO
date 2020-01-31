@@ -9,4 +9,4 @@ A potential infection occurs within the population if and only if there is a con
 
 Infections are also introduced into the population randomly, that is, case importations occur to random clusters at different time points, and the disease importation rate, m, is defined as the number of cases per year arising completely independently from the population being studied. The per-timestep probability of infection for an individual in the population is proportional to the weighted sum of infectious cases in each cluster. Transmission through import case does not require a contact edge between two nodes.
 
-DOI: 10.6084/m9.figshare.11777832
+DOI: https://doi.org/10.6084/m9.figshare.11777832
