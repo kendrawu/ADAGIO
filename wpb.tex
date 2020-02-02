@@ -1,0 +1,104 @@
+\documentclass[a4paper]{article}
+
+%\documentclass{infdis}
+\usepackage{pdflscape}
+\usepackage{cite}
+\usepackage{url}
+%\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+%\usepackage[colorinlistoftodos]{todonotes}
+%\usepackage{enumitem}
+%\usepackage{hhline}
+
+\newcommand{\forceindent}{\leavevmode{\parindent=1em\indent}}
+
+\title{ADAGIO: WPB}
+
+\author{Kendra M. Wu}
+
+\date{27 November 2019 (last update: 02 February 2020) - WIP}
+
+\begin{document}
+	\maketitle
+	
+	\section{Introduction}
+	This document discusses the work package B (WPB) of the project Adaptive Design and Genomics in Outbreaks (ADAGIO).
+	
+	\section{Transmission dynamic model}
+	\label{sec:TransModel}
+	\subsection{Model structure}
+	The transmission disease model can be described in two parts: 1) a stochastic susceptible-exposed-infectious-removed-vaccinated (SEIRV) model that describes the epidemiological dynamics of the disease within a population; and 2) a network model that describes the spatial dynamics. The network model has three levels of model structure of clusters of varying sizes: i) small clusters, which may represent households or hospital wards; ii) communities of small clusters; and iii) a region of these communities. The rest of the document will assume these small clusters represent households, and each node within each household represent an individual. 
+	
+	A potential infection occurs within the population if and only if there is a contact edge between two nodes, and there may be a contact edge between two nodes whether or not the nodes are from the same household or community. Rather, whether or not there is a contact edge between two nodes are determined by stochastic block network model (SBM), in which the probability of having contacts between individuals within the same cluster may be different from those that are between clusters. Subsequently, if there is a contact edge between two nodes, and one of them is an infectious ($I$) individual while the other is a susceptible ($S$), another stochastic block network model will determine whether there is a transmission edge between these two nodes. 
+	
+	We assume that infections are also introduced into the population randomly, that is, case importations occur to random clusters at different time points, and the disease importation rate, $m$, is defined as the number of cases per year arising completely independently from the population being studied. The per-timestep probability of infection for an individual in the population is proportional to the weighted sum of infectious cases in each cluster. Transmission through import case does not require a contact edge between two nodes.
+	
+	\subsection{Epidemiological dynamics}
+	We use a stochastic five-compartmental model to describe the epidemiological dynamics of the disease, where the five compartments represent: susceptible individuals ($S$), who can be infected after contact with infectious individuals; exposed individuals ($E$), who are infected but not yet infectious to others; infectious individuals ($I$) within the community; recovered individuals ($R$), who are recovered and immune from the disease and are no longer infectious; and vaccinated individuals ($V$), who have been vaccinated against the disease.
+	
+	The incubation and latent periods are assumed to be concurrent, that is, symptom onset occurs when infectiousness begins. We modelled them as $\Gamma$-distributed using the following Ebola-like parameters\cite{Hitchings2018AmJEpi}: For incubation period, we use shape = 3.11 and rate = 0.32; For infectious period, we use shape = 1.13 and rate = 0.226. These numbers result in an average incubation/ latent period of 7.14 days and an average infectious period of 3 days.
+	
+	\subsection{Spatial dynamics}
+	To describe the spatial dynamics, we use a network model, which describes a population that is separable into groups. In this case, we model the study population into three levels of community structure. That is, each node represents an individual. Varying sizes of individuals form a household. Then multiple households form a community, and multiple communities form a region of the population. We use stochastic block network model to define whether there is a contact edge between two nodes. If there is a contact edge between them, and one of them is an infectious individual ($I$) while another is a susceptible individual ($S$), another stochastic block network model will determine if there will be a transmission edge between them to have disease transmission occurrence. The modelling framework can, however, be readily extended to account for heterogeneity with different parameters (See Section \ref{sec:Example}).
+	
+	The network model has the total population split into $k$ interacting households of sizes $n_{h_r}$, where $r = 1,..,k$. Different number of these households are placed into interacting communities of sizes $n_{c_q}$, where $q = 1,...,v$. We define the epidemiological relevant contact between individuals $i$ and $j$ in the population based on stochastic block network model\cite{Hitchings2018AmJEpi, Karrer2011arXiv}, where $i$ and $j$ are connected independently, and a transmission based on another stochastic block network model between $i$ and $j$ if $i$ is infectious ($I$) and $j$ is susceptible ($S$) (Figure \ref{fig:sbm}). Since the people who are infectious and susceptible are different every time step, this second stochastic block network model is dynamic and is updated every time step.
+	
+	Different types of links
+	As required: Add H and F compartments
+	
+	\begin{figure}[!ht]
+		\begin{center}	
+			\includegraphics[width=4in]{./Figures/sbm_schematic.jpg} 
+		\end{center}
+		\caption[Schematic of a three-level contact structure network model with three small clusters  in each larger cluster at a particular time point]{Schematic of a stochastic block network model for a three-level contact structure network model. Nodes, which indicates an individual, of the same colour indicate they have connections. A solid black arrow indicates an infection from an infectious person to a susceptible individual occurs at a particular time t.}
+		\label{fig:sbm}
+	\end{figure}
+	
+	Therefore, each susceptible individual in household $r$ that is within community $q$ has a per-timestep probability of becoming infected and moving into the exposed compartment from three sources: 1) the per-timestep infection from infectious individual within the same household $r$; 2) the per-timestep probability of infection from infectious individual in household that is not $r$ but from the same community $q$; and 3) the per-timestep probability of infection from infectious individual in household that is not $r$, which is located not in community $q$. Finally, the last source for a susceptible individual of becoming infected and moving into the infectious compartment directly is: $m$, which is the number of imported cases of the entire population per year, where $m$ is defined as a random value from a Poisson function. This is the only source of infection that does not require a epidemiological relevant contact between an infector and an infectee as the infector is from an external source.
+	
+	The stochastic block matrix, $\left \{Gc \right \}_{i,j\in [r,q]}$, defines the probabilities of contacts of an edge between individual $i$ and $j$ when $j$ is from household $r$ and community $q$. The matrix is defined by $n_r$, $n_q$, and $\left \{w \right \}$. $n_r$ and $n_q$ hold the number of individuals in $r$ and $q$, respectively, and $\left \{w \right \}=\left \{w_{i\in [r,q],j\in [r,q]}, w_{i\in [w\neq r,q],j\in [r,q]}, w_{i\in [w\neq r,z\neq q],j\in [r,q]} \right \}$ is the contacts probability array that defines the probabilities of contacts of an edge between two individuals when i) $i$ is from household $r$ and community $q$; ii) $i$ is not from household $r$ but from community $q$, and iii) $i$ is not from community $q$, and we assume that the number of contacts per individual is Bernoulli-distributed. Similarly, $\left \{Gt \right \}_{i,j\in [r,q]}$ defines the probabilities of transmission occurrence between individual $i$ and $j$ when $j$ is from household $r$ and community $q$. Again, $n_r$ and $n_q$ hold the number of individuals in $r$ and $q$, and $\left \{w \right \}=\left \{w_{i\in [r,q],j\in [r,q]}, w_{i\in [w\neq r,q],j\in [r,q]}, w_{i\in [w\neq r,z\neq q],j\in [r,q]} \right \}$ is the transmission probability array that defines the probabilities of transmission occurrence between $i$ and $j$ when i) $i$ is from household $r$ and community $q$; ii) $i$ is not from household $r$ but from community $q$, and iii) $i$ is not from community $q$, and we assume that the number of transmission per individual per time step is Bernoulli-distributed. 
+	
+	\subsection{$R_0$ in a network}
+	Force of infection (or hazard of infection), $\lambda$, is the rate at which susceptible individuals acquire an infectious disease, and it is directly proportional to transmission rate, $\beta$. When the population mixes randomly and if the pseudo-mass-action assumption ($\beta(t)SI$) is valid, which implies that transmission grows linearly with the population size, force of infection is defined as \cite{vandenDriessche2017InfectDisModel}:
+	\begin{equation}
+	\lambda = \beta I_t
+	\end{equation}
+	Otherwise, if the true mass-action assumption ($\beta(t)SI/N$) is valid, which makes the model parameters (homogeneous system of order 1) independent of N, force of infection is defined as:
+	\begin{equation}
+	\lambda = \frac{\beta I_t}{N}
+	\end{equation}
+	
+	According to \cite{Meyers2005JTheoBiol}, given the degree distribution of a network, we can compute $R_0$ as a function of transmissibility $T$ as,
+	\begin{equation}
+	R_0 = T\left (\frac{\left \langle k^2 \right \rangle}{k}-1\right),
+	\end{equation}
+	where $k$ is the mean degree of the network (i.e., average number of neighbours per node in the network), $k^2$ is the mean square degree of the network, and are defined as (Section 1.2.2 of \cite{Kiss2017}):
+	\begin{equation}\label{equ: degree}
+	\langle k\rangle = \frac{1}{N}\sum_{i=1}^{N}k_i=\frac{1}{N}\sum_{i=1}^{N}\sum_{j=1}^{N}g_{ij},
+	\end{equation}
+	where $g_{ij}$ is an entry in an adjacency matrix whose value is 1 if $(i,j) \in E$, where $E$ is a set of pairs of nodes in the network, and $N$ is the total number of nodes in the network. Additionally, transmissibility is the average probability that an infectious individual with whom they have contact. It is a function of force of infection, infectious period, and network structure, which is defined as\cite{Kahn2018ClinTrials}:
+	\begin{equation}\label{equ: transmissibility}
+	T = 1-\left(\frac{\gamma}{\gamma+\lambda}\right)^\alpha,
+	\end{equation}
+	where $\gamma$ is the infectious period rate, $\alpha$ is the infectious period shape, and $\lambda$ is the force of infection. Since we do not have all of these parameters to compute $T$ directly, instead, $T$ was calculated based on its definition.
+	
+	\subsection{Final size of epidemic}
+	The final size of epidemic from a SEIR model can be computed from 
+	\begin{equation}\label{equ: final_size}
+	ln\frac{S_0}{S_{\infty}}=R_0*\left [ 1-\frac{S_{\infty}}{N} \right ]
+	\end{equation}
+	which is an implicit equation for $S_{\infty}$, the number of susceptible at the end of the epidemic. However, because of the spatial structure, equation (\ref{equ: final_size}) is not applicable to this transmission model..
+	
+	\subsection{Applying the transmission model to different scenarios}
+	\label{sec:Example}
+	The strength of this transmission model is that it is flexible and can be easily modified to become a transmission model for a specific pathogen in a more specific setting and scenario. In terms of pathogens, this model can be applied to the following three scenarios: a) A pathogen that spreads sustainable between people in the community (e.g., influenza); b) A pathogen that spreads between people largely in hospitals or classrooms (e.g., SARS-CoV); and c) A pathogen that spreads in animal populations, but that can spillover and spread between humans unsustainably (e.g., avian influenza, monkeypox). 
+	
+	This transmission model is not applicable to a homogeneously mixing population however because of the spatial dynamic structure involved, so that $R_0$ is a function of transmissibility and mean degree of the network, as opposed to transmission rate and recovery rate. Thus, when we simulate a homogeneously mixing population, we need to remove the spatial dynamic structure and only compute epidemiological parameters from the SEIRV epidemiological dynamic model.
+	
+	\label{Bibliography}
+	\bibliographystyle{plos2015}
+	\bibliography{wpb}
+	
+\end{document}
