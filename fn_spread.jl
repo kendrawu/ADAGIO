@@ -5,48 +5,6 @@ using SpecialFunctions
 using Distributions
 using StatsBase
 
-N = 20
-contact_map = [1 0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               2 1 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               3 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               4 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               5 1 1 1 1 0 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1;
-               6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               9 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               10 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               11 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               12 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               13 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               14 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               15 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               17 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               18 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               19 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-               20 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-i = [5]
-s = [1 3 8 9 10 11 12 13 14 15]
-e = [6]
-v = [2 4 7 16 17 18 19 20]
-neighbour_list = [3 9 10 11 12 14 15 17 20]
-highrisk_list = [4 8 13 16 18 19]
-vac_efficacy = [0 0.7 0 0.7 0 0 0.8 0 0 0 0 0 0 0 0 0.8 0.8 0.9 0.9 0.9]
-protection_threshold = 0.8
-infect_prob_s = 0.9
-infect_prob_v = 0.9
-incubperiod = [3.11 0.32]
-incubperiod_info = [1 0 0.0; 2 0 0.0; 3 0 0.0; 4 0 0.0; 5 0 0.0;
-                    6 1 2.5; 7 0 0.0; 8 0 0.0; 9 0 0.0; 10 0 0.0;
-                    11 0 0.0;12 0 0.0;13 0 0.0;14 0 0.0;15 0 0.0;
-                    16 0 0.0; 17 0 0.0; 18 0 0.0; 19 0 0.0; 20 0 0.0]
-timestep = 2
-neighbour_scalar_s = 0.35
-neighbour_scalar_v = 0.35
-highrisk_scalar_s = 2.5
-highrisk_scalar_v = 2.5
-
 # Function to move nodes s and v that are contacts of node i to nodes e
 function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_efficacy, protection_threshold, neighbour_list, highrisk_list, neighbour_scalar_s, neighbour_scalar_v, highrisk_scalar_s, highrisk_scalar_v, contact_map, timestep)
 
@@ -100,9 +58,9 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
         susceptible_potential_infectee_highrisk = intersect(susceptible_potential_infectee, highrisk_list)
         susceptible_potential_infectee_normal = setdiff(setdiff(susceptible_potential_infectee, susceptible_potential_infectee_neighbour), highrisk_list)
         vaccinated_potential_infectee = intersect(contacts_list,v) # The overall vaccinated list
-        vaccinated_potential_infectee_neighbour = intersect(vaccindated_potential_infectee, neighbour_list)
-        vaccinated_potential_infectee_highrisk = intersect(vaccindated_potential_infectee, highrisk_list)
-        vaccinated_potential_infectee_normal = setdiff(setdiff(vaccindated_potential_infectee, vaccindated_potential_infectee_neighbour), highrisk_list)
+        vaccinated_potential_infectee_neighbour = intersect(vaccinated_potential_infectee, neighbour_list)
+        vaccinated_potential_infectee_highrisk = intersect(vaccinated_potential_infectee, highrisk_list)
+        vaccinated_potential_infectee_normal = setdiff(setdiff(vaccinated_potential_infectee, vaccindated_potential_infectee_neighbour), highrisk_list)
 
         # Determine size of exposure among the susceptible individuals
         susceptible_potential_exposed_size = size(susceptible_potential_infectee,1)
@@ -177,8 +135,6 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
 
     e = sort(e) # sort e in order of node names
     exposed_days = reshape(exposed_days, 2, :)' # Convert exposed_days from array to matrix
-    
+
     return e, exposed_days, incubperiod_info
 end
-
-(e, exposed_days, incubperiod_info) = fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_efficacy, protection_threshold, neighbour_list, highrisk_list, neighbour_scalar_s, neighbour_scalar_v, highrisk_scalar_s, highrisk_scalar_v, contact_map, timestep)
