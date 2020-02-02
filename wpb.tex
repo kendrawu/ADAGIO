@@ -84,13 +84,6 @@
 	\end{equation}
 	where $\gamma$ is the infectious period rate, $\alpha$ is the infectious period shape, and $\lambda$ is the force of infection. Since we do not have all of these parameters to compute $T$ directly, instead, $T$ was calculated based on its definition.
 	
-	\subsection{Final size of epidemic}
-	The final size of epidemic from a SEIR model can be computed from 
-	\begin{equation}\label{equ: final_size}
-	ln\frac{S_0}{S_{\infty}}=R_0*\left [ 1-\frac{S_{\infty}}{N} \right ]
-	\end{equation}
-	which is an implicit equation for $S_{\infty}$, the number of susceptible at the end of the epidemic. However, because of the spatial structure, equation (\ref{equ: final_size}) is not applicable to this transmission model..
-	
 	\subsection{Applying the transmission model to different scenarios}
 	\label{sec:Example}
 	The strength of this transmission model is that it is flexible and can be easily modified to become a transmission model for a specific pathogen in a more specific setting and scenario. In terms of pathogens, this model can be applied to the following three scenarios: a) A pathogen that spreads sustainable between people in the community (e.g., influenza); b) A pathogen that spreads between people largely in hospitals or classrooms (e.g., SARS-CoV); and c) A pathogen that spreads in animal populations, but that can spillover and spread between humans unsustainably (e.g., avian influenza, monkeypox). 
