@@ -9,4 +9,8 @@ A potential infection occurs within the population if and only if there is a con
 
 Infections are also introduced into the population randomly, that is, case importations occur to random clusters at different time points, and the disease importation rate, m, is defined as the number of cases per year arising completely independently from the population being studied. The per-timestep probability of infection for an individual in the population is proportional to the weighted sum of infectious cases in each cluster. Transmission through import case does not require a contact edge between two nodes.
 
+This transmission model is written with an intend that it is flexible and can be easily modified to become a transmission model for a specific pathogen in a more specific setting and scenario if necessary. In terms of pathogens, this model can be applied to the following three scenarios: a) A pathogen that spreads sustainable between people in the community (e.g., influenza); b) A pathogen that spreads between people largely in hospitals or classrooms (e.g., SARS-CoV); and c) A pathogen that spreads in animal populations, but that can spillover and spread between humans unsustainable (e.g., 2019-nCoV, avian influenza, monkeypox). 
+
 DOI: https://doi.org/10.6084/m9.figshare.11777832
+
+Acknowledgment: This study/ project is funded by the National Institute for Health Research (NIHR) (Grant Reference Number PR-OD-1017-20006). The views expressed are those of the author(s) and not necessarily those of the NIHR or the Department of Health and Social Care.
