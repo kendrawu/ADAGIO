@@ -79,9 +79,9 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
         exposed_highrisk = sample(icontacts_highrisk, exposed_size_highrisk_min, replace=false) # The high risk groups
         exposed = union(exposed_normal, exposed_neighbour, exposed_highrisk) # Put the lists together
 
-        # Separate the potential exposed between susceptible and vaccinated
-        susceptible_infectee = intersect(exposed, s) # The susceptible exposed
-        vaccinated_infectee = intersect(exposed, v_new) # The (potential) vaccinated exposed
+        # Separate the potential exposed who are currently susceptible and vaccinated
+        susceptible_infectee = intersect(exposed, s) # The potential exposed that are currently susceptible
+        vaccinated_infectee = intersect(exposed, v_new) # The potential exposed that are currently vaccinated
         susceptible_infectee = sort(susceptible_infectee)
         vaccinated_infectee = sort(vaccinated_infectee)
 
