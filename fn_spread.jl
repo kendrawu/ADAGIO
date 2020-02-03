@@ -40,6 +40,7 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
     exposed_days = Float16[]
     global e
     global exposed_days
+    global v_new = v
 
     # Determine the contacts of one infector
     for index1 in 1:(size(i,2))
@@ -103,7 +104,7 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
             for index4 in 1:(size(vaccinated_infectee,1))
                 if vac_efficacy[vaccinated_infectee[index4]] < protection_threshold # Check if vaccine efficacy is below threshold
                     push!(e::Array{Int,1},vaccinated_infectee[index4]) # If so, add node name to e
-                    global v_new = setdiff(v_new, vaccinated_infectee[index4]) # remove e from v and call the variable v_new
+                    v_new = setdiff(v_new, vaccinated_infectee[index4]) # remove e from v_new
 
                     # Add info of those exposed onto exposed_days
                     global exposed_days = [[0 0]'; exposed_days] # Add a new row to exposed_days
