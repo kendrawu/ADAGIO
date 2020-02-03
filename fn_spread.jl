@@ -40,7 +40,9 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
     exposed_days = Float16[]
     global e
     global exposed_days
-    global v_new = v
+
+    # Initialization
+    v_new = v
 
     # Determine the contacts of one infector
     for index1 in 1:(size(i,2))
@@ -107,7 +109,7 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
                     v_new = setdiff(v_new, vaccinated_infectee[index4]) # remove e from v_new
 
                     # Add info of those exposed onto exposed_days
-                    global exposed_days = [[0 0]'; exposed_days] # Add a new row to exposed_days
+                    exposed_days = [[0 0]'; exposed_days] # Add a new row to exposed_days
                     exposed_days[1,1] = vaccinated_infectee[index4] # Node name
                     exposed_days[2,1] = round.(rand(Gamma(incubperiod[1]/incubperiod[2]),1)[1]) # Incubation period
 
