@@ -56,30 +56,32 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
         end
 
         # Determine the health status of normal contacts, neighhours, and high-risk individuals of i[index1]
-        susceptible_potential_infectee = intersect(contacts_list, s) # The overall susceptible list
-        vaccinated_potential_infectee = intersect(contacts_list, v_new) # The overall vaccinated list
-        potential_infectee = union(susceptible_potential_infectee, vaccinated_potential_infectee) # The overall list
-        potential_infectee_neighbour = intersect(potential_infectee, neighbour_list) # The neighbours
-        potential_infectee_highrisk = intersect(potential_infectee, highrisk_list) # The highrisks
-        potential_infectee_normal = setdiff(setdiff(potential_infectee, potential_infectee_neighbour), potential_infectee_highrisk) # Normal contacts
+        susceptible_contacts = intersect(contacts_list, s) # The susceptible contacts
+        vaccinated_contacts = intersect(contacts_list, v_new) # The vaccinated contacts
+        icontacts = union(susceptible_contacts, vaccinated_contacts) # The potential infectees of i[index1]: the susceptible and vaccinated contacts of i[index1]
+        icontacts_neighbour = intersect(icontacts, neighbour_list) # The neighbours
+        icontacts_highrisk = intersect(icontacts, highrisk_list) # The highrisks
+        icontacts_normal = setdiff(setdiff(icontacts, icontacts_neighbour), icontacts_highrisk) # Normal contacts
 
         # Determine size of exposure
         exposed_size_normal = size(i,2) * round(Int, rand(Poisson(infect_prob), 1)[1]) # Normal contacts
         exposed_size_neighbour = size(i,2) * round(Int, rand(Poisson(infect_prob * neighbour_scalar), 1)[1]) # The neighbours
         exposed_size_highrisk = size(i,2) * round(Int, rand(Poisson(infect_prob * highrisk_scalar), 1)[1]) # The high risks
 
-        # Determine who will be exposed among normal contacts, neighbours, and high-risk groups
-        exposed_size_normal_min = min(size(potential_infectee_normal,1), exposed_size_normal) # Take into account susceptible depletion
-        exposed_size_neighbour_min = min(size(potential_infectee_neighbour,1), exposed_size_neighbour) # Take into account susceptible depletion
-        exposed_size_highrisk_min = min(size(potential_infectee_highrisk,1), exposed_size_highrisk) # Take into account susceptible depletion
-        infectee_normal = sample(potential_infectee_normal, exposed_size_normal_min, replace=false) # The normal contacts
-        infectee_neighbour = sample(potential_infectee_neighbour, exposed_size_neighbour_min, replace=false) # The neighbours
-        infectee_highrisk = sample(potential_infectee_highrisk, exposed_size_highrisk_min, replace=false) # The high risk groups
-        infectee = union(infectee_normal, infectee_neighbour, infectee_highrisk) # Put the lists together
+        # Take into account susceptible depletion
+        exposed_size_normal_min = min(size(icontacts_normal,1), exposed_size_normal)
+        exposed_size_neighbour_min = min(size(icontacts_neighbour,1), exposed_size_neighbour)
+        exposed_size_highrisk_min = min(size(icontacts_highrisk,1), exposed_size_highrisk)
 
-        # Determine who will be exposed among the susceptible and the vaccinated
-        susceptible_infectee = intersect(infectee, s) # The susceptible
-        vaccinated_infectee = intersect(infectee, v_new) # The vaccinated
+        # Determine who will be exposed among normal contacts, neighbours, and high-risk groups by sampling
+        exposed_normal = sample(icontacts_normal, exposed_size_normal_min, replace=false) # The normal contacts
+        exposed_neighbour = sample(icontacts_neighbour, exposed_size_neighbour_min, replace=false) # The neighbours
+        exposed_highrisk = sample(icontacts_highrisk, exposed_size_highrisk_min, replace=false) # The high risk groups
+        exposed = union(exposed_normal, exposed_neighbour, exposed_highrisk) # Put the lists together
+
+        # Separate the potential exposed between susceptible and vaccinated
+        susceptible_infectee = intersect(exposed, s) # The susceptible exposed
+        vaccinated_infectee = intersect(exposed, v_new) # The (potential) vaccinated exposed
         susceptible_infectee = sort(susceptible_infectee)
         vaccinated_infectee = sort(vaccinated_infectee)
 
