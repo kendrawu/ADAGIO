@@ -630,37 +630,6 @@ T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual 
 R0 = T * (k^2/k - 1)
 #println("k = ", k, ", T = ",T, ", and R0 = ",R0)
 
-# Final size
-#CI = zeros(size(communitysize_arr,1))
-#finalsize_cluster = zeros(size(communitysize_arr,1))
-#if R0>1
-#    for i in 1:size(communitysize_arr,1)
-#        CI[i] = 1/(1-R0)/communitysize_arr[i]
-#        finalsize_cluster[i] = 1 - exp(-R0 * CI[i])
-#        finalsize = sum(finalsize_cluster)
-#    end
-#else
-#    finalsize = N-1/(1-R0) # for large population
-#end
-#println(finalsize)
-
-#y = zeros(N)
-#s_infinity = zeros(N)
-# When R0<1
-#if R0>1
-#    finalsize = exp(0)
-#else
-#    for i in 1:N
-#        s_infinity[i] = i
-#        y[i] = log(S0) - log(s_infinity[i]) - R0*(1-s_infinity[i]/N)
-#        if y[i] == 0
-#            finalsize = N-round.(s_infinity[i])
-#        end
-#    end
-#end
-#println(finalsize)
-#plot(y, 1:N, legend=false)
-
 print("Processing time:")
 end #stop timeing the processing time
 
