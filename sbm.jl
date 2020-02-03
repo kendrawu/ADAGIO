@@ -240,7 +240,7 @@ function fn_partialimmune(immunenum0, nstatus)
     # Output:
     # nstatus: Health statuses of all individuals in the population at each time step
 
-    # Generate node_names of imported cases at t=timestep
+    # Generate node_names of immuned people at t=timestep
     immuneppl = sample(1:N, immunenum0, replace=false) # Sampling without replacement
 
     for index1 in 1:(size(immuneppl,1))
@@ -566,17 +566,15 @@ hhnum_arr = fn_partition(hhsize_arr) # Assign household number to each individua
 communitysize_arr = fn_par_cluster(N, par_hh, par_community, "community") # Define the sizes of each community
 communitynum_arr = fn_partition(communitysize_arr) # Assign community number to each individual in the population
 
-# Generate imported cases for the duration of the outbreak
-importcasenum_timeseries = fn_importcases_timeseries(import_lambda, casenum0, endtime) 
+# Generate the number of imported cases for the duration of the outbreak
+importcasenum_timeseries = fn_importcases_timeseries(import_lambda, casenum0, endtime)
 
 # Compute who-contact-whom network graphs
 Gc = fn_contact_network(par_prob, hhsize_arr, communitysize_arr, hhnum_arr, communitynum_arr) # Construct a who-contact-whom stochastic block network
-contact_arr = fn_contactlist(Gc, nstatus, infector_node_name, timestep)
 
     timestep3 = 1
-
     nstatus = fn_partialimmune(immunenum0, nstatus) # Generate immnue people
-    nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t=timestep3
+    nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t-timestep3
 
     D = fn_countelements(nstatus[:,timestep3+1]) # Count number of occurrences of SEIRV at a particular t=timestep3
 
@@ -622,9 +620,8 @@ for timestep1 in 2:(round(Int,endtime))
 end
 
 sbm_sol = sbm_sol[1:size(sbm_sol,1) .!= 1,: ] # Delete the dummy row 1 from sbm_sol
+CSV.write("./data/sbm_sol.csv", sbm_sol, writeheader=true) # Write key results into files
 #println(first(sbm_sol,10))
-
-
 
 # Check the algorithm
 # Compute R0 in a network
