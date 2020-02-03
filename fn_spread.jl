@@ -63,7 +63,6 @@ function fn_spread(s, i, v, infect_prob_s, infect_prob_v, incubperiod, incubperi
         vaccinated_potential_infectee_normal = setdiff(setdiff(vaccinated_potential_infectee, vaccinated_potential_infectee_neighbour), highrisk_list) # Normal contacts
 
         # Determine size of exposure among the susceptible individuals
-        susceptible_potential_exposed_size = size(susceptible_potential_infectee,1) # Overall size of exposed among the susceptibles
         susceptible_exposed_size_normal = round(Int, rand(Poisson(infect_prob_s), 1)[1]) # Normal contacts
         susceptible_exposed_size_neighbour = round(Int, rand(Poisson(infect_prob_s * neighbour_scalar_s), 1)[1]) # The neighbours
         susceptible_exposed_size_highrisk = round(Int, rand(Poisson(infect_prob_s * highrisk_scalar_s), 1)[1]) # The high risks
@@ -79,7 +78,6 @@ function fn_spread(s, i, v, infect_prob_s, infect_prob_v, incubperiod, incubperi
         susceptible_infectee = sort(susceptible_infectee)
 
         # Determine size of exposure among the vaccinated individuals
-        vaccinated_potential_exposed_size = size(vaccinated_potential_infectee,1) # Overall size of exposed among the vaccinated
         vaccinated_exposed_size_normal = round(Int, infect_prob_v) # Normal contact
         vaccinated_exposed_size_neighbour = round(Int, infect_prob_v * neighbour_scalar_v) # The neighbours
         vaccinated_exposed_size_highrisk = round(Int, infect_prob_v * highrisk_scalar_v) # The high risks
