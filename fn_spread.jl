@@ -38,7 +38,6 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
     vaccinated_potential_infectee_neighbour = Int[]
     vaccinated_potential_infectee_highrisk = Int[]
     exposed_days = Float16[]
-    s_new = s
     global e
     global exposed_days
 
@@ -54,7 +53,7 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
         end
 
         # Determine the health status of normal contacts, neighhours, and high-risk individuals of i[index1]
-        susceptible_potential_infectee = intersect(contacts_list, s_new) # The overall susceptible list
+        susceptible_potential_infectee = intersect(contacts_list, s) # The overall susceptible list
         vaccinated_potential_infectee = intersect(contacts_list, v_new) # The overall vaccinated list
         potential_infectee = union(susceptible_potential_infectee, vaccinated_potential_infectee) # The overall list
         potential_infectee_neighbour = intersect(potential_infectee, neighbour_list) # The neighbours
@@ -76,17 +75,15 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
         infectee = union(infectee_normal, infectee_neighbour, infectee_highrisk) # Put the lists together
 
         # Determine who will be exposed among the susceptible and the vaccinated
-        susceptible_infectee = intersect(infectee, s_new) # The susceptible
+        susceptible_infectee = intersect(infectee, s) # The susceptible
         vaccinated_infectee = intersect(infectee, v_new) # The vaccinated
         susceptible_infectee = sort(susceptible_infectee)
         vaccinated_infectee = sort(vaccinated_infectee)
-        println("susceptible_infectee = ", susceptible_infectee)
-        println("vaccinated_infectee = ", vaccinated_infectee)
 
         # Move s that is contact of i to e
         if size(susceptible_infectee,1)>0
             e = vcat(e, susceptible_infectee) # Move s that is contact of i[index1] to e
-            s_new = setdiff(s_new, e) # update s
+            s = setdiff(s, e) # update s
 
             for index3 in 1:(size(susceptible_infectee,1))
 
