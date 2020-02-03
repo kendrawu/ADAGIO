@@ -6,6 +6,7 @@ using Distributions
 using StatsBase
 
 # Function to move nodes s and v that are contacts of node i to nodes e
+# Function to move nodes s and v that are contacts of node i to nodes e
 function fn_spread(s, i, v, infect_prob_s, infect_prob_v, incubperiod, incubperiod_info, vac_efficacy, protection_threshold, neighbour_list, highrisk_list, neighbour_scalar_s, neighbour_scalar_v, highrisk_scalar_s, highrisk_scalar_v, contact_map, timestep)
 
     # Inputs:
