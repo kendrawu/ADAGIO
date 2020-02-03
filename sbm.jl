@@ -573,7 +573,7 @@ importcasenum_timeseries = fn_importcases_timeseries(import_lambda, casenum0, en
 Gc = fn_contact_network(par_prob, hhsize_arr, communitysize_arr, hhnum_arr, communitynum_arr) # Construct a who-contact-whom stochastic block network
 
     timestep3 = 1
-    nstatus = fn_partialimmune(immunenum0, nstatus) # Generate immnue people
+    nstatus = fn_partialimmune(immunenum0, nstatus) # Generate immune people
     nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t-timestep3
 
     D = fn_countelements(nstatus[:,timestep3+1]) # Count number of occurrences of SEIRV at a particular t=timestep3
