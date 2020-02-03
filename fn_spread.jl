@@ -80,6 +80,8 @@ function fn_spread(s, i, v, infect_prob, incubperiod, incubperiod_info, vac_effi
         vaccinated_infectee = intersect(infectee, v_new) # The vaccinated
         susceptible_infectee = sort(susceptible_infectee)
         vaccinated_infectee = sort(vaccinated_infectee)
+        println("susceptible_infectee = ", susceptible_infectee)
+        println("vaccinated_infectee = ", vaccinated_infectee)
 
         # Move s that is contact of i to e
         if size(susceptible_infectee,1)>0
