@@ -64,9 +64,9 @@ function fn_spread(s, i, v, infect_prob_s, infect_prob_v, incubperiod, incubperi
 
         # Determine size of exposure among the susceptible individuals
         susceptible_potential_exposed_size = size(susceptible_potential_infectee,1) # Overall size of exposed among the susceptibles
-        susceptible_exposed_size_normal = round(Int, rand(Poisson(susceptible_potential_exposed_size * infect_prob_s), 1)[1]) # Normal contacts
-        susceptible_exposed_size_neighbour = round(Int, rand(Poisson(susceptible_potential_exposed_size * infect_prob_s * neighbour_scalar_s), 1)[1]) # The neighbours
-        susceptible_exposed_size_highrisk = round(Int, rand(Poisson(susceptible_potential_exposed_size * infect_prob_s * highrisk_scalar_s), 1)[1]) # The high risks
+        susceptible_exposed_size_normal = round(Int, rand(Poisson(infect_prob_s), 1)[1]) # Normal contacts
+        susceptible_exposed_size_neighbour = round(Int, rand(Poisson(infect_prob_s * neighbour_scalar_s), 1)[1]) # The neighbours
+        susceptible_exposed_size_highrisk = round(Int, rand(Poisson(infect_prob_s * highrisk_scalar_s), 1)[1]) # The high risks
 
         # Determine who will be exposed among the susceptible who are normal contacts, neighbours, and high-risk groups
         susceptible_exposed_size_normal_min = min(size(susceptible_potential_infectee_normal,1), susceptible_exposed_size_normal) # Make sure to have enough number of people to draw from among the normal contacts
@@ -80,9 +80,9 @@ function fn_spread(s, i, v, infect_prob_s, infect_prob_v, incubperiod, incubperi
 
         # Determine size of exposure among the vaccinated individuals
         vaccinated_potential_exposed_size = size(vaccinated_potential_infectee,1) # Overall size of exposed among the vaccinated
-        vaccinated_exposed_size_normal = round(Int, vaccinated_potential_exposed_size * infect_prob_v) # Normal contact
-        vaccinated_exposed_size_neighbour = round(Int, vaccinated_potential_exposed_size * infect_prob_v * neighbour_scalar_v) # The neighbours
-        vaccinated_exposed_size_highrisk = round(Int, vaccinated_potential_exposed_size * infect_prob_v * highrisk_scalar_v) # The high risks
+        vaccinated_exposed_size_normal = round(Int, infect_prob_v) # Normal contact
+        vaccinated_exposed_size_neighbour = round(Int, infect_prob_v * neighbour_scalar_v) # The neighbours
+        vaccinated_exposed_size_highrisk = round(Int, infect_prob_v * highrisk_scalar_v) # The high risks
 
         # Determine who will be exposed among the vaccinated who are normal contacts, neighbours, and high-risk groups
         vaccinated_exposed_size_normal_min = min(size(vaccinated_potential_infectee_normal,1), vaccinated_exposed_size_normal) # Make sure to have enough number of people to draw from among the normal contacts
