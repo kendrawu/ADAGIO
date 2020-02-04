@@ -275,15 +275,17 @@ function fn_contact_network(par_prob, hhsize_arr, communitysize_arr, hhnum_arr, 
 
     # Construct a who-contact-whom stochastic block matrix graph
     for i = 1:sum(communitysize_arr), j = 1:sum(communitysize_arr)
-        if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
-            if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same houseshold
-                Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhwithin_cwithin]),1)[1]
+        if i != j # Check if infector and infectee are the same individual
+            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
+                if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same houseshold
+                    Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhwithin_cwithin]),1)[1]
+                else
+                    Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cwithin]),1)[1]
+                end
             else
-                Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cwithin]),1)[1]
+                # Infector and infectee are from different communities, so they cannot be from the same household
+                Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cbetween]),1)[1]
             end
-        else
-            # Infector and infectee are from different communities, so they cannot be from the same household
-            Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cbetween]),1)[1]
         end
     end
 
