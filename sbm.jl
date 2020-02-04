@@ -641,7 +641,7 @@ for timestep1 in 2:(round(Int,endtime))
         k = sum(sum(Gc))/N # mean degree of the network
         T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact
         R0 = T * (k^2/k - 1)
-        println("k = ", k, ", T = ",T, ", and R0 = ",R0)
+        #println("k = ", k, ", T = ",T, ", and R0 = ",R0)
 
         global sbm_sol
     end
