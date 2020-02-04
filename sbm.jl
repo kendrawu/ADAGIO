@@ -25,7 +25,7 @@ V0 = 0 # Number of vaccinated individuals in the population at day 0
 casenum0 = 1 # Number of infectious individuals introduced into the community to begin the outbreak
 immunenum0 = 0 # Number of people who are immune to the disease at the beginning of the outbreak
 import_lambda = .05 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
-lambda0 = 0.001 # Per-time-step harzard of infection for a susceptible nodes from an infectious neighbour
+lambda0 = 0.001 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
 
 ## The households
 # hhnum: Number of households in the network
@@ -371,17 +371,19 @@ function fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus,
     Gt = zeros(Int8, size(Gc,1), size(Gc,2))
 
     # Construct a who-infect-whom stochastic block matrix graph
-    for i = 1:size(Gc,1), j =1:size(Gc,2)
-        if Gc[i,j] != 0 && nstatus[i,timestep+1] == "I" # Check if there is a contact edge between the pair and if the infector is infectious
-            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
-                if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same household
-                    Gt[i,j] = rand(Bernoulli(par_prob[1,:tprob_hhwithin_cwithin]),1)[1]
+    for i = 1:size(Gc,1)
+        if Gc[i,:] != 0 && nstatus[i,timestep+1] == "I" # Check if the infector is infectious
+            for j = 1:size(Gc,2) # Check if there is a contact edge between the infector-infectee pair
+                if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
+                    if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same household
+                        Gt[i,j] = rand(Bernoulli(par_prob[1,:tprob_hhwithin_cwithin]),1)[1]
+                    else
+                        Gt[i,j] = rand(Bernoulli(par_prob[1,:tprob_hhbetween_cwithin]),1)[1]
+                    end
                 else
-                    Gt[i,j] = rand(Bernoulli(par_prob[1,:tprob_hhbetween_cwithin]),1)[1]
+                    # Infector and infectee are from different communities, so they cannot be from the same household
+                    Gt[i,j] = rand(Bernoulli(par_prob[1,:tprob_hhbetween_cbetween]),1)[1]
                 end
-            else
-                # Infector and infectee are from different communities, so they cannot be from the same household
-                Gt[i,j] = rand(Bernoulli(par_prob[1,:tprob_hhbetween_cbetween]),1)[1]
             end
         end
     end
@@ -637,7 +639,7 @@ for timestep1 in 2:(round(Int,endtime))
         k = sum(sum(Gc))/N # mean degree of the network
         T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact
         R0 = T * (k^2/k - 1)
-        #println("k = ", k, ", T = ",T, ", and R0 = ",R0)
+        println("k = ", k, ", T = ",T, ", and R0 = ",R0)
 
         global sbm_sol
     end
