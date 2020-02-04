@@ -191,6 +191,9 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
     # Output:
     # nstatus: Health statuses of all individuals in the population at each time step
 
+    # Set nstatus within a function (local)
+    nstatus_fn = nstatus
+
     # From importcasesnum_timeseries, obtain number of import cases at t=timestep
     casenum = importcasenum_timeseries[timestep]
 
@@ -210,27 +213,26 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
         tbound1 = min(timestep + ceil(incubperiod[1]), endtime)
         tbound2 = min(timestep + ceil(incubperiod[1]) + ceil(infectperiod[1]), endtime)
 
-        # column_index start at 2 because nstatus[:,1] is nodes_name
+        # column_index start at 2 because nstatus_fn[:,1] is nodes_name
         # for index2 in timestep:(round(Int,tbound1))
-        #    nstatus[importcases[index1],index2+1] = "E"
+        #    nstatus_fn[importcases[index1],index2+1] = "E"
         # end
 
-        #if nstatus[importcases[index1],timestep] == "S"
-            for index3 in (round(Int,tbound1)):(round(Int,tbound2))
-                nstatus[importcases[index1],index3+1] = "I"
-            end
+        for index3 in (round(Int,tbound1)):(round(Int,tbound2))
+            nstatus_fn[importcases[index1],index3+1] = "I"
+        end
 
-            for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
-                nstatus[importcases[index1],index4+1] = "R"
-            end
-        #end
+        for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
+            nstatus_fn[importcases[index1],index4+1] = "R"
+        end
 
     end
 
-    return nstatus
+    return nstatus_fn
 end
 
 # Function to generate immune individuals and randomly distribute them into different clusters
+# at the beginning of the outbreak
 function fn_partialimmune(immunenum0, nstatus)
 
     # Inputs:
@@ -240,16 +242,19 @@ function fn_partialimmune(immunenum0, nstatus)
     # Output:
     # nstatus: Health statuses of all individuals in the population at each time step
 
+    # Set nstatus within a function (local)
+    nstatus_fn = nstatus
+
     # Generate node_names of immuned people at t=timestep
     immuneppl = sample(1:N, immunenum0, replace=false) # Sampling without replacement
 
     for index1 in 1:(size(immuneppl,1))
         for index4 in 1:(round(Int,endtime))
-            nstatus[immuneppl[index1],index4+1] = "R"
+            nstatus_fn[immuneppl[index1],index4+1] = "R"
         end
     end
 
-    return nstatus
+    return nstatus_fn
 end
 
 # Function to construct and return the who-contact-whom using stochastic block model
@@ -453,12 +458,16 @@ function fn_spread(par_disease, nstatus, infectees, V, timestep)
 
     # Inputs:
     # par_disease: User-defined parameters of the disease
+    # nstate: Health statuses of all the individuals in the population at each time step
     # infectees: A list of nodes_names that are to be infected at t=timestep according to SBM
     # V: A list of nodes_names that are vaccinated at t=timestep
     # timestep: The time t of the outbreak
 
     # Output:
     # nstate: Health statuses of all the individuals in the population at each time step
+
+    # Set nstatus within a function (local)
+    nstatus_fn = nstatus
 
     # From the infected cases in infectees, allow health statuses change as time progresses
     for index1 in 1:(size(infectees,1))
@@ -475,25 +484,25 @@ function fn_spread(par_disease, nstatus, infectees, V, timestep)
 
         # column_index start at 2 because nstatus[:,1] is nodes_name
         for index2 in timestep:(round(Int,tbound1))
-            nstatus[infectees[index1],index2+1] = "E"
+            nstatus_fn[infectees[index1],index2+1] = "E"
         end
 
         for index3 in (round(Int,tbound1)+1):(round(Int,tbound2))
-            nstatus[infectees[index1],index3+1] = "I"
+            nstatus_fn[infectees[index1],index3+1] = "I"
         end
 
         for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
-            nstatus[infectees[index1],index4+1] = "R"
+            nstatus_fn[infectees[index1],index4+1] = "R"
         end
     end
 
     if size(V,1)>0
         for index5 in 1:(size(V,1))
-            nstatus[V[index5],timestep:(round(Int,endtime)+1)] = "V"
+            nstatus_fn[V[index5],timestep:(round(Int,endtime)+1)] = "V"
         end
     end
 
-    return nstatus
+    return nstatus_fn
 end
 
 # Function to count the occurrence of unique elements in nstatus[:,timestep],
@@ -559,6 +568,7 @@ function fn_computeT(par_prob, Gc, nstatus, timestep)
     return T
 end
 
+
 # Main algorithm
 # Compute the parameters of the clusters
 hhsize_arr = fn_par_cluster(N, par_hh, par_community, "household") # Define the sizes of each household
@@ -572,56 +582,60 @@ importcasenum_timeseries = fn_importcases_timeseries(import_lambda, casenum0, en
 # Compute who-contact-whom network graphs
 Gc = fn_contact_network(par_prob, hhsize_arr, communitysize_arr, hhnum_arr, communitynum_arr) # Construct a who-contact-whom stochastic block network
 
-    timestep3 = 1
-    nstatus = fn_partialimmune(immunenum0, nstatus) # Generate immune people
-    nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t-timestep3
+timestep3 = 1
+nstatus = fn_partialimmune(immunenum0, nstatus) # Generate immune people
+nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep3) # Import infectious cases at t-timestep3
 
-    D = fn_countelements(nstatus[:,timestep3+1]) # Count number of occurrences of SEIRV at a particular t=timestep3
+D = fn_countelements(nstatus[:,timestep3+1]) # Count number of occurrences of SEIRV at a particular t=timestep3
 
-    # Put these SEIRV incidence values into a DataFrame sbm_sol
-    sbm_sol[timestep3,:S] = D[1,:S] # Put S value into the appropriate cell
-    sbm_sol[timestep3,:E] = D[1,:E] # Put E value into the appropriate cell
-    sbm_sol[timestep3,:I] = D[1,:I] # Put I value into the appropriate cell
-    sbm_sol[timestep3,:R] = D[1,:R] # Put R value into the appropriate cell
-    sbm_sol[timestep3,:V] = D[1,:V] # Put V value into the appropriate cell
+# Put these SEIRV incidence values into a DataFrame sbm_sol
+sbm_sol[timestep3,:S] = D[1,:S] # Put S value into the appropriate cell
+sbm_sol[timestep3,:E] = D[1,:E] # Put E value into the appropriate cell
+sbm_sol[timestep3,:I] = D[1,:I] # Put I value into the appropriate cell
+sbm_sol[timestep3,:R] = D[1,:R] # Put R value into the appropriate cell
+sbm_sol[timestep3,:V] = D[1,:V] # Put V value into the appropriate cell
 
 # Begin transmission
 for timestep1 in 2:(round(Int,endtime))
 
+    local nstatus_fn
+    nstatus_fn = nstatus
+
+    local sbm_sol_fn
+    sbm_sol_fn = sbm_sol
+
     if timestep1 != 2
-        nstatus = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep1)
+        nstatus_fn = fn_importcases(par_disease, importcasenum_timeseries, nstatus_fn, timestep1)
     end
 
-    Gt = fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
+    Gt = fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus_fn, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
     potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
-    transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus, timestep1) # Check if potential_transmit_indexes are susceptibles
-    global T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus, timestep1)
+    transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus_fn, timestep1) # Check if potential_transmit_indexes are susceptibles
+    global T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus_fn, timestep1)
 
     if size(transmit_indexes,1)>0 # Check if there are infectees
 
-        global nstatus
-        global sbm_sol
-
-        nstatus = fn_spread(par_disease, nstatus, transmit_indexes, V, timestep1) # Spread the diseae within the network and update nstatus
+        nstatus_fn = fn_spread(par_disease, nstatus_fn, transmit_indexes, V, timestep1) # Spread the diseae within the network and update nstatus
 
         # Count number of occurrences of SEIRV at a particular timestep
         for timestep2 in 2:(round(Int,endtime))
 
-            D = fn_countelements(nstatus[:,timestep2]) # Count number of occurrences of SEIRV at a particular t=timestep2
+            D = fn_countelements(nstatus_fn[:,timestep2]) # Count number of occurrences of SEIRV at a particular t=timestep2
 
-            # Put these SEIRV incidence values into a DataFrame sbm_sol
-            sbm_sol[timestep2,:S] = D[1,:S] # Put S value into the appropriate cell
-            sbm_sol[timestep2,:E] = D[1,:E] # Put E value into the appropriate cell
-            sbm_sol[timestep2,:I] = D[1,:I] # Put I value into the appropriate cell
-            sbm_sol[timestep2,:R] = D[1,:R] # Put R value into the appropriate cell
-            sbm_sol[timestep2,:V] = D[1,:V] # Put V value into the appropriate cell
+            # Put these SEIRV incidence values into a DataFrame sbm_sol_fn
+            sbm_sol_fn[timestep2,:S] = D[1,:S] # Put S value into the appropriate cell
+            sbm_sol_fn[timestep2,:E] = D[1,:E] # Put E value into the appropriate cell
+            sbm_sol_fn[timestep2,:I] = D[1,:I] # Put I value into the appropriate cell
+            sbm_sol_fn[timestep2,:R] = D[1,:R] # Put R value into the appropriate cell
+            sbm_sol_fn[timestep2,:V] = D[1,:V] # Put V value into the appropriate cell
         end
     end
+    sbm_sol = sbm_sol_fn
+    global sbm_sol
 end
 
 sbm_sol = sbm_sol[1:size(sbm_sol,1) .!= 1,: ] # Delete the dummy row 1 from sbm_sol
 CSV.write("./data/sbm_sol.csv", sbm_sol, writeheader=true) # Write key results into files
-#println(first(sbm_sol,10))
 
 # Check the algorithm
 # Compute R0 in a network
@@ -631,7 +645,7 @@ R0 = T * (k^2/k - 1)
 #println("k = ", k, ", T = ",T, ", and R0 = ",R0)
 
 print("Processing time:")
-end #stop timeing the processing time
+end # Stop timeing the processing time
 
 # Plot graphs
 plot([sbm_sol.S, sbm_sol.E, sbm_sol.I, sbm_sol.R, sbm_sol.V], label=["S","E","I","R","V"], title="Stochastic Block Model", xlabel="Time (days)", ylabel="Number of Population")
