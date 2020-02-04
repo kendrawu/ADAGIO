@@ -5,7 +5,7 @@
 # Simulates disease transmission of a 3-level clustered network with contact structure and imported cases at random time and clusters based on stochastic block model (SBM) using Ebola-like parameters from Hitchings et al (2018).
 
 # Begin timing the processing time
-@time begin #begin timing the processing time
+@timev begin #begin timing the processing time
 
 # Introduce packages
 using SpecialFunctions # For generating gamma distribution
@@ -53,7 +53,7 @@ par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_
 par_disease = DataFrame(incubperiod_shape=3.11, incubperiod_rate=0.32, infectperiod_shape=1.13, infectperiod_rate=0.226)
 
 # Initializations
-nstatus = fill("S", N, round(Int,endtime))
+nstatus = fill('S', N, round(Int,endtime))
 nstatus = hcat([1:1:N;], nstatus) # Put indexes on the 1st column
 sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
 T_arr = zeros(round(Int,endtime))
@@ -219,11 +219,11 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
         # end
 
         for index3 in (round(Int,tbound1)):(round(Int,tbound2))
-            nstatus_fn[importcases[index1],index3+1] = "I"
+            nstatus_fn[importcases[index1],index3+1] = 'I'
         end
 
         for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
-            nstatus_fn[importcases[index1],index4+1] = "R"
+            nstatus_fn[importcases[index1],index4+1] = 'R'
         end
 
     end
@@ -250,7 +250,7 @@ function fn_partialimmune(immunenum0, nstatus)
 
     for index1 in 1:(size(immuneppl,1))
         for index4 in 1:(round(Int,endtime))
-            nstatus_fn[immuneppl[index1],index4+1] = "R"
+            nstatus_fn[immuneppl[index1],index4+1] = 'R'
         end
     end
 
@@ -307,7 +307,7 @@ function fn_contactlist(Gc, nstatus, infector_node_name, timestep)
     contact_arr = zeros(Int8, N)
 
     # Find the contact list of infector_node_name
-    if nstatus[infector_node_name, timestep+1] != "I"
+    if nstatus[infector_node_name, timestep+1] != 'I'
         println("wrong infector_node_name")
     else
         contact_arr = findall(x->x!=0, Gc[infector_node_name,:])
@@ -332,7 +332,7 @@ function fn_computeT(par_prob, Gc, nstatus, timestep)
     prob_per_infector = zeros(N)
 
     for i = 1:size(Gc,1), j =1:size(Gc,2)
-        if Gc[i,j] != 0 && nstatus[i,timestep+1] == "I" # Check if there is a contact edge between the pair and if the infector is infectious
+        if Gc[i,j] != 0 && nstatus[i,timestep+1] == 'I' # Check if there is a contact edge between the pair and if the infector is infectious
             if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
                 if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same household
                     prob[i,j] = par_prob[1,:tprob_hhwithin_cwithin]
@@ -374,7 +374,7 @@ function fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus,
 
     # Construct a who-infect-whom stochastic block matrix graph
     for i = 1:size(Gc,1)
-        if Gc[i,:] != 0 && nstatus[i,timestep+1] == "I" # Check if the infector is infectious
+        if Gc[i,:] != 0 && nstatus[i,timestep+1] == 'I' # Check if the infector is infectious
             for j = 1:size(Gc,2) # Check if there is a contact edge between the infector-infectee pair
                 if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
                     if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same household
@@ -438,7 +438,7 @@ function fn_uniqueS(nonzeros_indexes, nstatus, timestep)
 
     for i in 1:(size(nonzeros_indexes,1))
         # Obtain nodes_name if nonzeros_indexes[i]'s status is susceptible at time=(timestep+1)
-        if nstatus[nonzeros_indexes[i],timestep+1] == "S"
+        if nstatus[nonzeros_indexes[i],timestep+1] == 'S'
             indexes_tmp[r] = nstatus[nonzeros_indexes[i],:1]
             r += 1
         end
@@ -488,21 +488,21 @@ function fn_spread(par_disease, nstatus, infectees, V, timestep)
 
         # column_index start at 2 because nstatus[:,1] is nodes_name
         for index2 in timestep:(round(Int,tbound1))
-            nstatus_fn[infectees[index1],index2+1] = "E"
+            nstatus_fn[infectees[index1],index2+1] = 'E'
         end
 
         for index3 in (round(Int,tbound1)+1):(round(Int,tbound2))
-            nstatus_fn[infectees[index1],index3+1] = "I"
+            nstatus_fn[infectees[index1],index3+1] = 'I'
         end
 
         for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
-            nstatus_fn[infectees[index1],index4+1] = "R"
+            nstatus_fn[infectees[index1],index4+1] = 'R'
         end
     end
 
     if size(V,1)>0
         for index5 in 1:(size(V,1))
-            nstatus_fn[V[index5],timestep:(round(Int,endtime)+1)] = "V"
+            nstatus_fn[V[index5],timestep:(round(Int,endtime)+1)] = 'V'
         end
     end
 
@@ -549,7 +549,7 @@ function fn_computeT(par_prob, Gc, nstatus, timestep)
     prob_per_infector = zeros(N)
 
     for i = 1:size(Gc,1), j =1:size(Gc,2)
-        if Gc[i,j] != 0 && nstatus[i,timestep+1] == "I" # Check if there is a contact edge between the pair and if the infector is infectious
+        if Gc[i,j] != 0 && nstatus[i,timestep+1] == 'I' # Check if there is a contact edge between the pair and if the infector is infectious
             if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
                 if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same household
                     prob[i,j] = par_prob[1,:tprob_hhwithin_cwithin]
@@ -641,7 +641,7 @@ for timestep1 in 2:(round(Int,endtime))
         k = sum(sum(Gc))/N # mean degree of the network
         T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact
         R0 = T * (k^2/k - 1)
-        #println("k = ", k, ", T = ",T, ", and R0 = ",R0)
+        println("k = ", k, ", T = ",T, ", and R0 = ",R0)
 
         global sbm_sol
     end
