@@ -189,7 +189,7 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
     # timestep: The time t of the outbreak
 
     # Output:
-    # nstatus: Health statuses of all individuals in the population at each time step
+    # nstatus_fn: Health statuses of all individuals in the population at each time step
 
     # Create a local variable for nstatus
     nstatus_fn = nstatus
@@ -240,7 +240,7 @@ function fn_partialimmune(immunenum0, nstatus)
     # nstatus: Health statuses of all individuals in the population at each time step
 
     # Output:
-    # nstatus: Health statuses of all individuals in the population at each time step
+    # nstatus_fn: Health statuses of all individuals in the population at each time step
 
     # Create a local variable for nstatus
     nstatus_fn = nstatus
@@ -464,7 +464,7 @@ function fn_spread(par_disease, nstatus, infectees, V, timestep)
     # timestep: The time t of the outbreak
 
     # Output:
-    # nstate: Health statuses of all the individuals in the population at each time step
+    # nstatus_fn: Health statuses of all the individuals in the population at each time step
 
     # Create a local variable for nstatus
     nstatus_fn = nstatus
