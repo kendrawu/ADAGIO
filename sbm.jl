@@ -611,7 +611,7 @@ for timestep1 in 2:(round(Int,endtime))
     Gt = fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus_fn, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
     potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
     transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus_fn, timestep1) # Check if potential_transmit_indexes are susceptibles
-    global T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus_fn, timestep1)
+    T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus_fn, timestep1)
 
     if size(transmit_indexes,1)>0 # Check if there are infectees
 
@@ -632,17 +632,18 @@ for timestep1 in 2:(round(Int,endtime))
     end
     sbm_sol = sbm_sol_fn
     global sbm_sol
+
+    # Compute R0 in a network
+    if timestep1 == round(Int,endtime)
+        k = sum(sum(Gc))/N # mean degree of the network
+        T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact
+        R0 = T * (k^2/k - 1)
+        #println("k = ", k, ", T = ",T, ", and R0 = ",R0)
+    end
 end
 
 sbm_sol = sbm_sol[1:size(sbm_sol,1) .!= 1,: ] # Delete the dummy row 1 from sbm_sol
 CSV.write("./data/sbm_sol.csv", sbm_sol, writeheader=true) # Write key results into files
-
-# Check the algorithm
-# Compute R0 in a network
-k = sum(sum(Gc))/N # mean degree of the network
-T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact
-R0 = T * (k^2/k - 1)
-#println("k = ", k, ", T = ",T, ", and R0 = ",R0)
 
 print("Processing time:")
 end # Stop timeing the processing time
