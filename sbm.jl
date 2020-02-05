@@ -200,18 +200,17 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
     # Generate node_names of imported cases at t=timestep
     importcases = sample(1:N, casenum, replace=false) # Sampling without replacement
 
+    # Compute the parameters for disease properties
+    #incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
+    #infectperiod_avg = ceil(par_disease[1,:infectperiod_shape]/par_disease[1,:infectperiod_rate])
+    incubperiod = zeros(length(importcases)) # Incubation period of the disease
+    infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),1) # Infectious period of the disease
+
     for index1 in 1:(size(importcases,1))
 
-        # Compute the parameters for disease properties
-        #incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
-        #infectperiod_avg = ceil(par_disease[1,:infectperiod_shape]/par_disease[1,:infectperiod_rate])
-        incubperiod = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1) # Incubation period of the disease
-        infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),1) # Infectious period of the disease
-
         # Set time boundaries according to incubation and infectious periods, and time should not exceed endtime.
-        incubperiod[1] = 0
-        tbound1 = min(timestep + ceil(incubperiod[1]), endtime)
-        tbound2 = min(timestep + ceil(incubperiod[1]) + ceil(infectperiod[1]), endtime)
+        tbound1 = min(timestep + ceil(incubperiod[index1,1]), endtime)
+        tbound2 = min(timestep + ceil(incubperiod[index1,1]) + ceil(infectperiod[index1,1]), endtime)
 
         # column_index start at 2 because nstatus_fn[:,1] is nodes_name
         # for index2 in timestep:(round(Int,tbound1))
@@ -473,18 +472,18 @@ function fn_spread(par_disease, nstatus, infectees, V, timestep)
     # Create a local variable for nstatus
     nstatus_fn = nstatus
 
+    # Compute the parameters for disease properties
+    #incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
+    #infectperiod_avg = ceil(par_disease[1,:infectperiod_shape]/par_disease[1,:infectperiod_rate])
+    incubperiod = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),length(infectees)) # Incubation period of the disease
+    infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),length(infectees)) # Infectious period of the disease
+
     # From the infected cases in infectees, allow health statuses change as time progresses
     for index1 in 1:(size(infectees,1))
 
-        # Compute the parameters for disease properties
-        #incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
-        #infectperiod_avg = ceil(par_disease[1,:infectperiod_shape]/par_disease[1,:infectperiod_rate])
-        incubperiod = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1) # Incubation period of the disease
-        infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),1) # Infectious period of the disease
-
         # Set time boundaries according to incubation and infectious periods, and time should not exceed endtime.
-        tbound1 = min(timestep + ceil(incubperiod[1]), endtime)
-        tbound2 = min(timestep + ceil(incubperiod[1]) + ceil(infectperiod[1]), endtime)
+        tbound1 = min(timestep + ceil(incubperiod[index1,1]), endtime)
+        tbound2 = min(timestep + ceil(incubperiod[index1,1]) + ceil(infectperiod[index1,1]), endtime)
 
         # column_index start at 2 because nstatus[:,1] is nodes_name
         for index2 in timestep:(round(Int,tbound1))
