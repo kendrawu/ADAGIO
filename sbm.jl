@@ -486,15 +486,15 @@ function fn_spread(par_disease, nstatus, infectees, V, timestep)
         tbound2 = ceil(Int, min(timestep + incubperiod[index1,1] + infectperiod[index1,1], round(Int,endtime)))
 
         # column_index start at 2 because nstatus[:,1] is nodes_name
-        for index2 in timestep:(round(Int,tbound1))
+        for index2 in timestep:tbound1
             nstatus_fn[infectees[index1],index2+1] = 'E'
         end
 
-        for index3 in (round(Int,tbound1)+1):(round(Int,tbound2))
+        for index3 in (tbound1+1):tbound2
             nstatus_fn[infectees[index1],index3+1] = 'I'
         end
 
-        for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
+        for index4 in (tbound2+1):(round(Int,endtime))
             nstatus_fn[infectees[index1],index4+1] = 'R'
         end
     end
