@@ -197,7 +197,7 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
     #incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
     #infectperiod_avg = ceil(par_disease[1,:infectperiod_shape]/par_disease[1,:infectperiod_rate])
     incubperiod = zeros(length(importcases)) # Incubation period of the disease
-    infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),1) # Infectious period of the disease
+    infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),length(importcases)) # Infectious period of the disease
 
     for index1 in 1:(length(importcases))
 
