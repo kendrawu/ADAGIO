@@ -428,21 +428,26 @@ function fn_uniqueS(nonzeros_indexes, nstatus, timestep)
     indexes_tmp = fill(0,length(nonzeros_indexes)) # To holds nodes_names of the individuals who are susceptible at (timestep+1) and they will be infected according to SBM model
     r = 1 # A counter
 
-    for i in 1:(length(nonzeros_indexes))
-        # Obtain nodes_name if nonzeros_indexes[i]'s status is susceptible at time=(timestep+1)
-        if nstatus[nonzeros_indexes[i],timestep+1] == 'S'
-            indexes_tmp[r] = nstatus[nonzeros_indexes[i],:1]
-            r += 1
+    if (length(nonzeros_indexes))>0
+        for i in 1:(length(nonzeros_indexes))
+            # Obtain nodes_name if nonzeros_indexes[i]'s status is susceptible at time=(timestep+1)
+            if nstatus[nonzeros_indexes[i],timestep+1] == 'S'
+                indexes_tmp[r] = nstatus[nonzeros_indexes[i],:1]
+                r += 1
+            end
         end
-    end
 
-    filter!(x->x≠0,indexes_tmp) # To remove the zero elements in indexes_tmp
-    # Take into account susceptible deplection to find the minimum between the potential infectees and the available susceptibles
-    bound = min(r-1, size(nonzeros_indexes,1), size(indexes_tmp,1)) # Find the minimum among the variables
+        filter!(x->x≠0,indexes_tmp) # To remove the zero elements in indexes_tmp
+        # Take into account susceptible deplection to find the minimum between the potential infectees and the available susceptibles
+        bound = min(r-1, size(nonzeros_indexes,1), size(indexes_tmp,1)) # Find the minimum among the variables
 
-    if bound> 0
-        unique_indexes = sample(indexes_tmp, bound, replace=false)
-        return unique_indexes
+        if bound> 0
+            unique_indexes = sample(indexes_tmp, bound, replace=false)
+            return unique_indexes
+        else
+            unique_indexes = Int8[]
+            return unique_indexes
+        end
     else
         unique_indexes = Int8[]
         return unique_indexes
