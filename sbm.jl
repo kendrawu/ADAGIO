@@ -166,16 +166,9 @@ function fn_importcases_timeseries(import_lambda, casenum0, endtime)
     # Output:
     # importcasenum_timeseries: node_names of imported cases on a time series for the duration of the outbreak
 
-    # Initialization
-    importcasenum_timeseries = zeros(Int8, (round(Int,endtime)))
+    importcasenum_timeseries = rand(Poisson(import_lambda), round(Int,endtime))
+    importcasenum_timeseries[1] = casenum0
 
-    for t = 1:(round(Int,endtime))
-        if t == 1
-            importcasenum_timeseries[t] = casenum0
-        else
-            importcasenum_timeseries[t] = rand(Poisson(import_lambda), 1)[1]
-        end
-    end
     return importcasenum_timeseries
 end
 
