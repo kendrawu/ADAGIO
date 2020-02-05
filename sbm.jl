@@ -209,19 +209,19 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
     for index1 in 1:(size(importcases,1))
 
         # Set time boundaries according to incubation and infectious periods, and time should not exceed endtime.
-        tbound1 = min(timestep + ceil(incubperiod[index1,1]), endtime)
-        tbound2 = min(timestep + ceil(incubperiod[index1,1]) + ceil(infectperiod[index1,1]), endtime)
+        tbound1 = ceil(Int, min(timestep + ceil(incubperiod[index1,1]), round(Int,endtime)))
+        tbound2 = ceil(Int, min(timestep + ceil(incubperiod[index1,1]) + ceil(infectperiod[index1,1]), round(Int,endtime)))
 
         # column_index start at 2 because nstatus_fn[:,1] is nodes_name
         # for index2 in timestep:(round(Int,tbound1))
         #    nstatus_fn[importcases[index1],index2+1] = "E"
         # end
 
-        for index3 in (round(Int,tbound1)):(round(Int,tbound2))
+        for index3 in tbound1:tbound2
             nstatus_fn[importcases[index1],index3+1] = 'I'
         end
 
-        for index4 in (round(Int,tbound2)+1):(round(Int,endtime))
+        for index4 in (tbound2+1):(round(Int,endtime))
             nstatus_fn[importcases[index1],index4+1] = 'R'
         end
 
@@ -479,11 +479,11 @@ function fn_spread(par_disease, nstatus, infectees, V, timestep)
     infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),length(infectees)) # Infectious period of the disease
 
     # From the infected cases in infectees, allow health statuses change as time progresses
-    for index1 in 1:(size(infectees,1))
+    for index1 in 1:(length(infectees))
 
         # Set time boundaries according to incubation and infectious periods, and time should not exceed endtime.
-        tbound1 = min(timestep + ceil(incubperiod[index1,1]), endtime)
-        tbound2 = min(timestep + ceil(incubperiod[index1,1]) + ceil(infectperiod[index1,1]), endtime)
+        tbound1 = ceil(Int, min(timestep + incubperiod[index1,1], round(Int,endtime)))
+        tbound2 = ceil(Int, min(timestep + incubperiod[index1,1] + infectperiod[index1,1], round(Int,endtime)))
 
         # column_index start at 2 because nstatus[:,1] is nodes_name
         for index2 in timestep:(round(Int,tbound1))
