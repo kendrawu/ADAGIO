@@ -127,24 +127,24 @@ function fn_partition(clustersize_arr)
     # clusternum_arr: Cluster number of each individual in the population
 
     # Initialization
-    cluster_partition_arr = zeros(Int, size(clustersize_arr,1))
+    cluster_partition_arr = zeros(Int, length(clustersize_arr))
 
-    for i = 1: (size(clustersize_arr,1))
+    for i = 1: (length(clustersize_arr))
         cluster_partition_arr[i] = clustersize_arr[i]
     end
     clusternum_arr = ones(Int, sum(clustersize_arr))
 
     # Define the node numbers where partitions occur
     if size(clustersize_arr,1) >= 2
-        for q1 in 2:(size(clustersize_arr,1))
+        for q1 in 2:(length(clustersize_arr))
             cluster_partition_arr[q1] = cluster_partition_arr[q1-1] + clustersize_arr[q1]
         end
     end
 
     # Distribute the individuals into clusters according to their node number
-    if size(cluster_partition_arr,1) >= 2
+    if length(cluster_partition_arr) >= 2
         for nodenum in 1:(sum(clustersize_arr))
-            for q2 in 2:(size(clustersize_arr,1))
+            for q2 in 2:(length(clustersize_arr))
                 if (nodenum > cluster_partition_arr[q2-1]) && (nodenum <= cluster_partition_arr[q2])
                     clusternum_arr[nodenum] = q2
                 end
@@ -199,7 +199,7 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
     incubperiod = zeros(length(importcases)) # Incubation period of the disease
     infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),1) # Infectious period of the disease
 
-    for index1 in 1:(size(importcases,1))
+    for index1 in 1:(length(importcases))
 
         # Set time boundaries according to incubation and infectious periods, and time should not exceed endtime.
         tbound1 = ceil(Int, min(timestep + ceil(incubperiod[index1,1]), round(Int,endtime)))
@@ -240,7 +240,7 @@ function fn_partialimmune(immunenum0, nstatus)
     # Generate node_names of immuned people at t=timestep
     immuneppl = sample(1:N, immunenum0, replace=false) # Sampling without replacement
 
-    for index1 in 1:(size(immuneppl,1))
+    for index1 in 1:(length(immuneppl))
         for index4 in 1:(round(Int,endtime))
             nstatus_fn[immuneppl[index1],index4+1] = 'R'
         end
@@ -425,10 +425,10 @@ function fn_uniqueS(nonzeros_indexes, nstatus, timestep)
     # unique_indexes: A list of nodes_names that can potentially be infected at t=(timestep+1) according to SBM
 
     # Initialization
-    indexes_tmp = fill(0,size(nonzeros_indexes,1)) # To holds nodes_names of the individuals who are susceptible at (timestep+1) and they will be infected according to SBM model
+    indexes_tmp = fill(0,length(nonzeros_indexes)) # To holds nodes_names of the individuals who are susceptible at (timestep+1) and they will be infected according to SBM model
     r = 1 # A counter
 
-    for i in 1:(size(nonzeros_indexes,1))
+    for i in 1:(length(nonzeros_indexes))
         # Obtain nodes_name if nonzeros_indexes[i]'s status is susceptible at time=(timestep+1)
         if nstatus[nonzeros_indexes[i],timestep+1] == 'S'
             indexes_tmp[r] = nstatus[nonzeros_indexes[i],:1]
