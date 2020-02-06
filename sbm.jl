@@ -135,7 +135,7 @@ function fn_partition(clustersize_arr)
     clusternum_arr = ones(Int, sum(clustersize_arr))
 
     # Define the node numbers where partitions occur
-    if size(clustersize_arr,1) >= 2
+    if length(clustersize_arr) >= 2
         for q1 in 2:(length(clustersize_arr))
             cluster_partition_arr[q1] = cluster_partition_arr[q1-1] + clustersize_arr[q1]
         end
@@ -425,18 +425,21 @@ function fn_uniqueS(nonzeros_indexes, nstatus, timestep)
     # unique_indexes: A list of nodes_names that can potentially be infected at t=(timestep+1) according to SBM
 
     # Initialization
-    s_elements = Int[]
+    s_elements = zeros(Int,length(nonzeros_indexes)) # To holds nodes_names of the individuals who are susceptible at (timestep+1) and they will be infected according to SBM model
+    r = 1 # A counter
 
     if (length(nonzeros_indexes))>0
         for i in 1:(length(nonzeros_indexes))
             # Obtain nodes_name if nonzeros_indexes[i]'s status is susceptible at time=(timestep+1)
             if nstatus[nonzeros_indexes[i],timestep+1] == 'S'
-                push!(s_elements::Array{Int,1},nstatus[nonzeros_indexes[i],1])
+                s_elements[i] = nstatus[nonzeros_indexes[i],1]
+                r += 1
             end
         end
+        filter!(x->x≠0,s_elements) # Remove the zero elements in s_elements
 
         # Take into account susceptible deplection to find the minimum between the potential infectees and the available susceptibles
-        bound = min(length(nonzeros_indexes), length(s_elements)) # Find the minimum among the variables
+        bound = min(r-1, length(nonzeros_indexes), length(s_elements)) # Find the minimum among the variables
 
         if bound> 0
             unique_indexes = sample(s_elements, bound, replace=false)
@@ -611,7 +614,7 @@ for timestep1 in 2:(round(Int,endtime))
     transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus_fn, timestep1) # Check if potential_transmit_indexes are susceptibles
     T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus_fn, timestep1)
 
-    if size(transmit_indexes,1)>0 # Check if there are infectees
+    if length(transmit_indexes)>0 # Check if there are infectees
 
         nstatus_fn = fn_spread(par_disease, nstatus_fn, transmit_indexes, V, timestep1) # Spread the diseae within the network and update nstatus
 
