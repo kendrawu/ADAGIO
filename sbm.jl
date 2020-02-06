@@ -426,6 +426,7 @@ function fn_uniqueS(nonzeros_indexes, nstatus, timestep)
 
     # Initialization
     s_elements = Int[]
+    sizehint!(s_elements, size(nstatus,1))
 
     if (length(nonzeros_indexes))>0
         for i in 1:(length(nonzeros_indexes))
