@@ -1,11 +1,11 @@
-# Stochastic block network model
+ # Stochastic block network model
 # Author: Kendra Wu
 # Date: 20 January 2020
 
 # Simulates disease transmission of a 3-level clustered network with contact structure and imported cases at random time and clusters based on stochastic block model (SBM) using Ebola-like parameters from Hitchings et al (2018).
 
 # Begin timing the processing time
-@timev begin #begin timing the processing time
+#@timev begin #begin timing the processing time
 
 # Introduce packages
 using SpecialFunctions # For generating gamma distribution
@@ -529,12 +529,14 @@ end
 
 # Function to return the transmissibility value, which is the average probability that an infectious individual
 # who will transmit the disease to a susceptible individual with whom they have contact
-function fn_computeT(par_prob, Gc, nstatus, timestep)
+function fn_computeT(par_prob, Gc, nstatus, hhnum_arr, communitynum_arr, timestep)
 
     # Inputs:
     # par_prob: User-defined contact and transmission probabilities between two nodes
     # Gc: The who-contact-whom stochastic block matrix graph
     # nstatus: Health statuses of all individuals in the population at each time step
+    # hhnum_arr: Household number of each individuals in the population
+    # communitynum_arr: Community number of each individuals in the population
     # timestep: The time t of the outbreak
 
     # Output:
@@ -595,7 +597,9 @@ sbm_sol[timestep3,:R] = D[1,:R] # Put R value into the appropriate cell
 sbm_sol[timestep3,:V] = D[1,:V] # Put V value into the appropriate cell
 
 # Begin transmission
+@timev begin
 for timestep1 in 2:(round(Int,endtime))
+    println("Day ", timestep1)
 
     local nstatus_fn
     nstatus_fn = nstatus
@@ -610,7 +614,7 @@ for timestep1 in 2:(round(Int,endtime))
     Gt = fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus_fn, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
     potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
     transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus_fn, timestep1) # Check if potential_transmit_indexes are susceptibles
-    T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus_fn, timestep1)
+    T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus_fn, hhnum_arr, communitynum_arr, timestep1)
 
     if size(transmit_indexes,1)>0 # Check if there are infectees
 
