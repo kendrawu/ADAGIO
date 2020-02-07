@@ -18,7 +18,7 @@
 
 \author{Kendra M. Wu}
 
-\date{27 November 2019 (last update: 03 February 2020) - WIP}
+\date{27 November 2019 (last update: 07 February 2020) - WIP}
 
 \begin{document}
 	\maketitle
@@ -26,6 +26,8 @@
 	\section{Introduction}
 	This document discusses the work package B (WPB) of the project Adaptive Design and Genomics in Outbreaks (ADAGIO).
 	
+	For figures and the pdf, please refer to this link: \href{https://www.overleaf.com/read/zjgfvwqndhfz}
+		
 	\section{Transmission dynamic model}
 	\label{sec:TransModel}
 	\subsection{Model structure}
@@ -87,8 +89,41 @@
 	
 	This transmission model is not applicable to a homogeneously mixing population however because of the spatial dynamic structure involved, so that $R_0$ is a function of transmissibility and mean degree of the network, as opposed to transmission rate and recovery rate. Thus, when we simulate a homogeneously mixing population, we need to remove the spatial dynamic structure and only compute epidemiological parameters from the SEIRV epidemiological dynamic model.
 	
-	\label{Bibliography}
-	\bibliographystyle{plos2015}
-	\bibliography{wpb}
+	\subsection{Some preliminary plots from the transmission model}
+		\begin{figure}[!ht]
+			\begin{center}	
+				\includegraphics[width=4in]{./Figures/sbm8_fig1.jpg} 
+			\end{center}
+		%\caption[Schematic of the clinical trial design]{Schematic of the clinical trial design.}
+		\end{figure}
+		
+			\begin{figure}[!ht]
+		\begin{center}	
+			\includegraphics[width=4in]{./Figures/sbm8_fig2.jpg} 
+		\end{center}
+		%\caption[Schematic of the clinical trial design]{Schematic of the clinical trial design.}
+	\end{figure}	
+		
+	\section{Clinical trial design}
+	\label{sec:TrialDesign}
+	This study sets out to use adaptive individually-randomized control trial (iRCT) to answer the following questions (for now) based on information feeds from the transmission dynamic model describes in Section \ref{sec:TransModel}:
+	\begin{enumerate}
+		\item When to start the iRCT (relative to day 1 of the epidemic)?
+		\item What is the most effective allocation ratio?
+	\end{enumerate}
+	
+	%Figure \ref{fig:trial} shows the schematic of the clinical trial design. 
+	%\begin{figure}[!ht]
+	%	\begin{center}	
+	%		\includegraphics[width=4in]{./Figures/trial_schematic.jpg} 
+	%	\end{center}
+	%\caption[Schematic of the clinical trial design]{Schematic of the clinical trial design.}
+	%\label{fig:trial}
+	%\end{figure}	
+	
+	
+\label{Bibliography}
+\bibliographystyle{plos2015}
+\bibliography{wpb}
 	
 \end{document}
