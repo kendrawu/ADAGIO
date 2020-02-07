@@ -87,33 +87,24 @@
 	
 	This transmission model is not applicable to a homogeneously mixing population however because spatial dynamic structure is involved, so that $R_0$ is a function of transmissibility and mean degree of the network, as opposed to transmission rate and recovery rate. Thus, when we simulate a homogeneously mixing population, we need to remove the spatial dynamic structure and only compute epidemiological parameters from the SEIRV epidemiological dynamic model.
 	
-	\subsection{WIP - Some preliminary plots from the transmission model}
+	\subsection{Some preliminary plots from the transmission model}
 	When the number of imported cases at day 1 of the epidemic was 5, initial per-time-step probability of infection for a susceptible nodes from an infectious neighbour ($\lambda_0$) was 0.01, and $k$ = $N-1$, Figures \ref{fig:seirv} shows an example of how an epidemic may progress.
 	\begin{figure}[!ht]
 	    \begin{center}	
-			\includegraphics[width=4in]{./Figures/sbm8_fig0.jpg} 
+			\includegraphics[width=4in]{./Figures/sbm8_fig1.jpg} 
 		\end{center}
 		\caption[Number of infectious people in the population]{Number of infectious people in the population.}
 		\label{fig:seirv}
 	\end{figure}
-		
-Figure \ref{fig:transmodel3} shows how $R_0$ varies according to transmissibility when $k$ was fixed as $N-1$. 
-		\begin{figure}[!ht]
-		    \begin{center}	
-			    \includegraphics[width=4in]{./Figures/sbm8_fig3.jpg} 
-		    \end{center}
-		    \caption[Transmissibility versus reproductive number when $k$ was  $N-1$]{Transmissibility versus reproductive number when $k$ was $N-1$.}
-		    \label{fig:transmodel3}
-	    \end{figure}
-	    
-After running 20 iterations of the same scenario as Figure \ref{fig:transmodel3}, Figures \ref{fig:transmodel1} shows the resulting number of infectious people in the population as well as the corresponding median, 5\% quantile, and 95\% quantile respectively. 	    
-		\begin{figure}[!ht]
-			\begin{center}	
-				\includegraphics[width=4in]{./Figures/sbm8_fig1.jpg} 
-			\end{center}
-			\caption[Number of infectious people in the population]{(A) Number of infectious people in the population; (B) The median, 5\% quantile, and 95\% quantile of the number of infectious people in the population.}
-			\label{fig:transmodel1}
-		\end{figure}
+		  
+Running 20 iterations resulting in Figures \ref{fig:transmodel1}, which shows A) the resulting number of infectious people in the population; B) the corresponding median, 5\% quantile, and 95\% quantile; and C) the variations of $R_0$ according to transmissibility when $k$ was $N-1$. 	    
+	\begin{figure}[!ht]
+		\begin{center}	
+			\includegraphics[width=4in]{./Figures/sbm8_fig2.jpg} 
+		\end{center}
+	\caption[Number of infectious people in the population]{(A) Number of infectious people in the population; (B) The median, 5\% quantile, and 95\% quantile of the number of infectious people in the population; (C) Variations of $R_0$ based on transmissibility when $k$ was $N-1$.}
+	\label{fig:transmodel1}
+	\end{figure}
 		
 	\newpage
 	\section{Clinical trial design}
@@ -124,14 +115,14 @@ After running 20 iterations of the same scenario as Figure \ref{fig:transmodel3}
 		\item What is the most effective allocation ratio?
 	\end{enumerate}
 	
-	%Figure \ref{fig:trial} shows the schematic of the clinical trial design. 
-	%\begin{figure}[!ht]
-	%	\begin{center}	
-	%		\includegraphics[width=4in]{./Figures/trial_schematic.jpg} 
-	%	\end{center}
-	%\caption[Schematic of the clinical trial design]{Schematic of the clinical trial design.}
-	%\label{fig:trial}
-	%\end{figure}	
+	Figure \ref{fig:trial} shows the schematic of the clinical trial design. 
+	\begin{figure}[!ht]
+		\begin{center}	
+			\includegraphics[width=4in]{./Figures/trial_schematic.jpg} 
+		\end{center}
+	\caption[Schematic of the clinical trial design]{Schematic of the clinical trial design.}
+	\label{fig:trial}
+	\end{figure}	
 	
 \newpage	
 \label{Bibliography}
