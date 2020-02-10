@@ -333,7 +333,9 @@ function fn_findnonzeros(M)
 
     # Define the type of arrays
     network_index_arr1 = Int[]
+    sizehint!(network_index_arr1, size(M,1))
     network_index_arr2 = Int[]
+    sizehint!(network_index_arr2, size(M,2))
 
     # Find index numbers in M that are non-zeros, which indicates the probability of transmission between indexes i and j are non-zeros
     for i = 1:size(M,1), j = 1:size(M,2)
@@ -559,7 +561,7 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
             nstatus_fn = fn_spread(par_disease, nstatus_fn, transmit_indexes, V, timestep1) # Spread the diseae within the network and update nstatus
 
             # Count number of occurrences of SEIRV at a particular timestep
-            for timestep2 in 2:(round(Int,endtime))
+            for timestep2 in timestep1:(round(Int,endtime))
 
                 D = fn_countelements(nstatus_fn[:,timestep2]) # Count number of occurrences of SEIRV at a particular t=timestep2
 
