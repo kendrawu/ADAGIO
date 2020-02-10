@@ -18,7 +18,7 @@ using DelimitedFiles
 using Plots
 
 # Set parameter values
-N = 1000 # Total population size
+N = 500 # Total population size
 endtime = 200.0 # Duration of simulation (timestep is in a unit of days)
 S0 = N # Number of suspectible people in the population at day 0
 V0 = 0 # Number of vaccinated individuals in the population at day 0
@@ -31,13 +31,13 @@ lambda0 = 0.001 # Per-time-step probability of infection for a susceptible nodes
 # hhnum: Number of households in the network
 # hhsize_avg: Average size of one household
 # hhsize_range: Range of household sizes (sizes are uniformly distributed)
-par_hh = DataFrame(hhnum=1, hhsize_avg=500, hhsize_range=0)
+par_hh = DataFrame(hhnum=100, hhsize_avg=5, hhsize_range=2)
 
 ## The clustered network
 # communitynum: Number of communities in the clustered network
 # communitysize_avg: Average size of one community
 # communitysize_range: Range of community sizes (sizes are uniformly distributed)
-par_community = DataFrame(communitynum=1, communitysize_avg=500, communitysize_range=0)
+par_community = DataFrame(communitynum=2, communitysize_avg=250, communitysize_range=10)
 
 ## Contact and transmission probabilities between nodes
 # cprob_hhwithin_cwithin: Probability of contacts of an edge between two nodes in the same household and the same community
@@ -104,7 +104,7 @@ function fn_par_cluster(N, par_hh, par_community, clustertype)
     # Determine the size of each cluster
     for i in 1:clusternum
         if i != clusternum
-            clustersize_arr[i] = clustersize_avg_mat[i] + clusterrandom_mat[i,i]
+            clustersize_arr[i] = clustersize_avg_mat[i] + clusterrandom_mat[i]
         else
             if (sum(clustersize_arr))>N
                 throw(ArgumentError("Not enough people to partition them into all the clusters. Please rerun the simulation or consider lowering the number of clusters/ increasing N."))
@@ -619,7 +619,7 @@ for timestep1 in 2:(round(Int,endtime))
         # Count number of occurrences of SEIRV at a particular timestep
         for timestep2 in timestep1:(round(Int,endtime))
 
-            D = fn_countelements(nstatus_fn[:,timestep2]) # Count number of occurrences of SEIRV at a particular t=timestep2
+            D = fn_countelements(nstatus_fn[:,timestep2+1]) # Count number of occurrences of SEIRV at a particular t=timestep2
 
             # Put these SEIRV incidence values into a DataFrame sbm_sol_fn
             sbm_sol_fn[timestep2,:S] = D[1,:S] # Put S value into the appropriate cell
