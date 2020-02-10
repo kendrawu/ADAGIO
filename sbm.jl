@@ -1,11 +1,11 @@
- # Stochastic block network model
+# Stochastic block network model
 # Author: Kendra Wu
 # Date: 20 January 2020
 
 # Simulates disease transmission of a 3-level clustered network with contact structure and imported cases at random time and clusters based on stochastic block model (SBM) using Ebola-like parameters from Hitchings et al (2018).
 
 # Begin timing the processing time
-#@timev begin #begin timing the processing time
+@timev begin #begin timing the processing time
 
 # Introduce packages
 using SpecialFunctions # For generating gamma distribution
@@ -267,15 +267,17 @@ function fn_contact_network(par_prob, hhsize_arr, communitysize_arr, hhnum_arr, 
 
     # Construct a who-contact-whom stochastic block matrix graph
     for i = 1:sum(communitysize_arr), j = 1:sum(communitysize_arr)
-        if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
-            if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same houseshold
-                Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhwithin_cwithin]),1)[1]
+        if i != j # Check if infector and infectee are the same individual
+            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
+                if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same houseshold
+                    Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhwithin_cwithin]),1)[1]
+                else
+                    Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cwithin]),1)[1]
+                end
             else
-                Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cwithin]),1)[1]
+                # Infector and infectee are from different communities, so they cannot be from the same household
+                Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cbetween]),1)[1]
             end
-        else
-            # Infector and infectee are from different communities, so they cannot be from the same household
-            Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cbetween]),1)[1]
         end
     end
 
@@ -394,7 +396,9 @@ function fn_findnonzeros(M)
 
     # Define the type of arrays
     network_index_arr1 = Int[]
+    sizehint!(network_index_arr1, size(M,1))
     network_index_arr2 = Int[]
+    sizehint!(network_index_arr2, size(M,2))
 
     # Find index numbers in M that are non-zeros, which indicates the probability of transmission between indexes i and j are non-zeros
     for i = 1:size(M,1), j = 1:size(M,2)
@@ -527,14 +531,12 @@ end
 
 # Function to return the transmissibility value, which is the average probability that an infectious individual
 # who will transmit the disease to a susceptible individual with whom they have contact
-function fn_computeT(par_prob, Gc, nstatus, hhnum_arr, communitynum_arr, timestep)
+function fn_computeT(par_prob, Gc, nstatus, timestep)
 
     # Inputs:
     # par_prob: User-defined contact and transmission probabilities between two nodes
     # Gc: The who-contact-whom stochastic block matrix graph
     # nstatus: Health statuses of all individuals in the population at each time step
-    # hhnum_arr: Household number of each individuals in the population
-    # communitynum_arr: Community number of each individuals in the population
     # timestep: The time t of the outbreak
 
     # Output:
@@ -595,9 +597,8 @@ sbm_sol[timestep3,:R] = D[1,:R] # Put R value into the appropriate cell
 sbm_sol[timestep3,:V] = D[1,:V] # Put V value into the appropriate cell
 
 # Begin transmission
-@timev begin
 for timestep1 in 2:(round(Int,endtime))
-    println("Day ", timestep1)
+    #println("Day ", timestep1)
 
     local nstatus_fn
     nstatus_fn = nstatus
@@ -612,14 +613,14 @@ for timestep1 in 2:(round(Int,endtime))
     Gt = fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus_fn, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
     potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
     transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus_fn, timestep1) # Check if potential_transmit_indexes are susceptibles
-    T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus_fn, hhnum_arr, communitynum_arr, timestep1)
+    T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus_fn, timestep1)
 
     if size(transmit_indexes,1)>0 # Check if there are infectees
 
         nstatus_fn = fn_spread(par_disease, nstatus_fn, transmit_indexes, V, timestep1) # Spread the diseae within the network and update nstatus
 
         # Count number of occurrences of SEIRV at a particular timestep
-        for timestep2 in 2:(round(Int,endtime))
+        for timestep2 in timestep1:(round(Int,endtime))
 
             D = fn_countelements(nstatus_fn[:,timestep2]) # Count number of occurrences of SEIRV at a particular t=timestep2
 
@@ -631,6 +632,7 @@ for timestep1 in 2:(round(Int,endtime))
             sbm_sol_fn[timestep2,:V] = D[1,:V] # Put V value into the appropriate cell
         end
     end
+
     sbm_sol = sbm_sol_fn
 
     # Compute R0 in a network
@@ -643,9 +645,6 @@ for timestep1 in 2:(round(Int,endtime))
         global sbm_sol
     end
 end
-
-sbm_sol = sbm_sol[1:size(sbm_sol,1) .!= 1,: ] # Delete the dummy row 1 from sbm_sol
-#CSV.write("./data/sbm_sol.csv", sbm_sol, writeheader=true) # Write key results into files
 
 print("Processing time:")
 end # Stop timeing the processing time
