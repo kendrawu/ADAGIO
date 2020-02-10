@@ -206,15 +206,17 @@ function fn_contact_network(par_prob, hhsize_arr, communitysize_arr, hhnum_arr, 
 
     # Construct a who-contact-whom stochastic block matrix graph
     for i = 1:sum(communitysize_arr), j = 1:sum(communitysize_arr)
-        if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
-            if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same houseshold
-                Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhwithin_cwithin]),1)[1]
+        if i != j # Check if infector and infectee are the same individual
+            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
+                if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same houseshold
+                    Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhwithin_cwithin]),1)[1]
+                else
+                    Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cwithin]),1)[1]
+                end
             else
-                Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cwithin]),1)[1]
+                # Infector and infectee are from different communities, so they cannot be from the same household
+                Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cbetween]),1)[1]
             end
-        else
-            # Infector and infectee are from different communities, so they cannot be from the same household
-            Gc[i,j] = rand(Bernoulli(par_prob[1,:cprob_hhbetween_cbetween]),1)[1]
         end
     end
 
@@ -468,7 +470,7 @@ end
 
 # Function to return the transmissibility value, which is the average probability that an infectious individual
 # who will transmit the disease to a susceptible individual with whom they have contact
-function fn_computeT(par_prob, Gc, nstatus, hhnum_arr, communitynum_arr, timestep)
+function fn_computeT(par_prob, Gc, nstatus, timestep)
 
     # Inputs:
     # par_prob: User-defined contact and transmission probabilities between two nodes
@@ -547,10 +549,7 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
         nstatus_fn = nstatus
         sbm_sol_fn = sbm_sol
 
-        if timestep1 != 2
-            nstatus_fn = fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep1)
-        end
-
+        nstatus_fn = fn_importcases(par_disease, importcasenum_timeseries, nstatus_fn, timestep1) # Import cases
         Gt = fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus_fn, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
         potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
         transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus_fn, timestep1) # Check if potential_transmit_indexes are susceptibles
@@ -574,6 +573,7 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
             end
         end
         sbm_sol = sbm_sol_fn
+        nstatus = nstatus_fn
 
         # Compute R0 in a network
         if timestep1 == round(Int,endtime)
@@ -593,5 +593,5 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
     sbm_sol_mat[:,3] = sbm_sol[:,3]
     sbm_sol_mat[:,4] = sbm_sol[:,4]
     sbm_sol_mat[:,5] = sbm_sol[:,5]
-    return sbm_sol_mat, T, R0
+    return sbm_sol_mat, nstatus, T, R0
 end
