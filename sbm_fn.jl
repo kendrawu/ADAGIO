@@ -43,7 +43,7 @@ function fn_par_cluster(N, par_hh, par_community, clustertype)
     # Determine the size of each cluster
     for i in 1:clusternum
         if i != clusternum
-            clustersize_arr[i] = clustersize_avg_mat[i] + clusterrandom_mat[i,i]
+            clustersize_arr[i] = clustersize_avg_mat[i] + clusterrandom_mat[i]
         else
             if (sum(clustersize_arr))>N
                 throw(ArgumentError("Not enough people to partition them into all the clusters. Please rerun the simulation or consider lowering the number of clusters/ increasing N."))
@@ -248,12 +248,15 @@ function fn_contactlist(Gc, nstatus, infector_node_name, timestep)
 end
 
 # Function to return the contact and contac-of-contacts of an infectious person
-function fn_computeT(par_prob, Gc, nstatus, timestep)
+function fn_computeT(N, par_prob, Gc, nstatus, hhnum_arr, communitynum_arr, timestep)
 
     # Inputs:
+    # N: Total population size
     # par_prob: User-defined contact and transmission probabilities between two nodes
     # Gc: The who-contact-whom stochastic block matrix graph
     # nstatus: Health statuses of all individuals in the population at each time step
+    # hhnum_arr: Holds the household number of each individuals in the population
+    # communitynum_arr: Holds the community number of each individuals in the population
     # timestep: The time t of the outbreak
 
     # Output:
@@ -468,46 +471,6 @@ function fn_countelements(v)
     return D
 end
 
-# Function to return the transmissibility value, which is the average probability that an infectious individual
-# who will transmit the disease to a susceptible individual with whom they have contact
-function fn_computeT(par_prob, Gc, nstatus, timestep)
-
-    # Inputs:
-    # par_prob: User-defined contact and transmission probabilities between two nodes
-    # Gc: The who-contact-whom stochastic block matrix graph
-    # nstatus: Health statuses of all individuals in the population at each time step
-    # timestep: The time t of the outbreak
-
-    # Output:
-    # T: Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact at t=timestep
-
-    prob = zeros(N,N)
-    prob_per_infector = zeros(N)
-
-    for i = 1:size(Gc,1), j =1:size(Gc,2)
-        if Gc[i,j] != 0 && nstatus[i,timestep+1] == 'I' # Check if there is a contact edge between the pair and if the infector is infectious
-            if communitynum_arr[i] == communitynum_arr[j] # Check if infector and infectee are from the same community
-                if hhnum_arr[i] == hhnum_arr[j] # Check if infector and infectee are from the same household
-                    prob[i,j] = par_prob[1,:tprob_hhwithin_cwithin]
-                else
-                    prob[i,j] = par_prob[1,:tprob_hhbetween_cwithin]
-                end
-            else
-                # Infector and infectee are from different communities, so they cannot be from the same household
-                prob[i,j] = par_prob[1,:tprob_hhbetween_cbetween]
-            end
-        end
-    end
-
-    for q = 1:N
-        prob_per_infector[q] = sum(prob[q,:])
-    end
-
-    filter!(x->~isnan(x),prob_per_infector)
-    T = mean(prob_per_infector)
-    return T
-end
-
 function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
 
     # Initializations
@@ -553,7 +516,7 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
         Gt = fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus_fn, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
         potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
         transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus_fn, timestep1) # Check if potential_transmit_indexes are susceptibles
-        T_arr[timestep1] = fn_computeT(par_prob, Gc, nstatus_fn, hhnum_arr, communitynum_arr, timestep1)
+        T_arr[timestep1] = fn_computeT(N, par_prob, Gc, nstatus_fn, hhnum_arr, communitynum_arr, timestep1)
 
         if size(transmit_indexes,1)>0 # Check if there are infectees
 
@@ -562,7 +525,7 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
             # Count number of occurrences of SEIRV at a particular timestep
             for timestep2 in timestep1:(round(Int,endtime))
 
-                D = fn_countelements(nstatus_fn[:,timestep2]) # Count number of occurrences of SEIRV at a particular t=timestep2
+                D = fn_countelements(nstatus_fn[:,timestep2+1]) # Count number of occurrences of SEIRV at a particular t=timestep2
 
                 # Put these SEIRV incidence values into a DataFrame sbm_sol_fn
                 sbm_sol_fn[timestep2,:S] = D[1,:S] # Put S value into the appropriate cell
@@ -593,5 +556,5 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
     sbm_sol_mat[:,3] = sbm_sol[:,3]
     sbm_sol_mat[:,4] = sbm_sol[:,4]
     sbm_sol_mat[:,5] = sbm_sol[:,5]
-    return sbm_sol_mat, nstatus, T, R0
+    return sbm_sol_mat, nstatus, communitysize_arr, communitynum_arr, T, R0
 end
