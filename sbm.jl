@@ -18,11 +18,11 @@ using DelimitedFiles
 using Plots
 
 # Set parameter values
-N = 500 # Total population size
+N = 1000 # Total population size
 endtime = 200.0 # Duration of simulation (timestep is in a unit of days)
 S0 = N # Number of suspectible people in the population at day 0
 V0 = 0 # Number of vaccinated individuals in the population at day 0
-casenum0 = 1 # Number of infectious individuals introduced into the community to begin the outbreak
+casenum0 = 5 # Number of infectious individuals introduced into the community to begin the outbreak
 immunenum0 = 0 # Number of people who are immune to the disease at the beginning of the outbreak
 import_lambda = .05 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
 lambda0 = 0.001 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
@@ -606,10 +606,7 @@ for timestep1 in 2:(round(Int,endtime))
     local sbm_sol_fn
     sbm_sol_fn = sbm_sol
 
-    if timestep1 != 2
-        nstatus_fn = fn_importcases(par_disease, importcasenum_timeseries, nstatus_fn, timestep1)
-    end
-
+    nstatus_fn = fn_importcases(par_disease, importcasenum_timeseries, nstatus_fn, timestep1) # Import cases
     Gt = fn_transmit_network(Gc, par_prob, hhnum_arr, communitynum_arr, nstatus_fn, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
     potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
     transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus_fn, timestep1) # Check if potential_transmit_indexes are susceptibles
