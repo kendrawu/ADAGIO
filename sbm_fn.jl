@@ -130,7 +130,8 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
     casenum = importcasenum_timeseries[timestep]
 
     # Generate node_names of imported cases at t=timestep
-    importcases = sample(1:N, casenum, replace=false) # Sampling without replacement
+    s_elements = findall(x->x=='S', nstatus_fn[:,timestep+1])
+    importcases = sample(s_elements, casenum, replace=false) # Sampling without replacement
 
     # Compute the parameters for disease properties
     #incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
