@@ -191,7 +191,8 @@ function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep
     casenum = importcasenum_timeseries[timestep]
 
     # Generate node_names of imported cases at t=timestep
-    importcases = sample(1:N, casenum, replace=false) # Sampling without replacement
+    s_elements = findall(x->x=='S', nstatus_fn[:,timestep+1])
+    importcases = sample(s_elements, casenum, replace=false) # Sampling without replacement
 
     # Compute the parameters for disease properties
     #incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
@@ -497,8 +498,8 @@ function fn_spread(par_disease, nstatus, infectees, V, timestep)
         end
     end
 
-    if size(V,1)>0
-        for index5 in 1:(size(V,1))
+    if length(V)>0
+        for index5 in 1:(length(V))
             nstatus_fn[V[index5],timestep:(round(Int,endtime)+1)] = 'V'
         end
     end
