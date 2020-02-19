@@ -398,13 +398,13 @@ function fn_uniqueS(nonzeros_indexes, nstatus, timestep)
 end
 
 # Function to simulate the spread of the disease and return the statuses of each nodes_name at all timesteps
-function fn_spread(par_disease, nstatus, infectees, V, timestep)
+function fn_spread(par_disease, nstatus, infectees, tstatus, timestep)
 
     # Inputs:
     # par_disease: User-defined parameters of the disease
     # nstate: Health statuses of all the individuals in the population at each time step
     # infectees: A list of nodes_names that are to be infected at t=timestep according to SBM
-    # V: A list of nodes_names that are vaccinated at t=timestep
+    # tstatus: Trial statuses of everyone in the population at timestep
     # timestep: The time t of the outbreak
 
     # Output:
@@ -440,9 +440,14 @@ function fn_spread(par_disease, nstatus, infectees, V, timestep)
         end
     end
 
-    if size(V,1)>0
-        for index5 in 1:(size(V,1))
-            nstatus_fn[V[index5],timestep:(round(Int,endtime)+1)] = 'V'
+    V = findall(x->x>0, tstatus[:,2])
+    if length(V)>0
+        println("V = ", V, length(V))
+        for index5 in 1:(length(V))
+            for t in timestep:(round(Int,endtime))
+                #println(index5, t)
+                nstatus_fn[V[index5],t+1] = 'V'
+            end
         end
     end
 
@@ -472,14 +477,16 @@ function fn_countelements(v)
     return D
 end
 
-function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+function fn_transmodel_nsim1(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
 
     # Initializations
-    nstatus = fill('S', N, round(Int,endtime))
+    nstatus = fill('S', N, round(Int,endtime)) # health statuses
     nstatus = hcat([1:1:N;], nstatus) # Put indexes on the 1st column
+    tstatus = fill(-1, N) # trial statuses: (-1=not in trial, 0=in control, 1=vaccine candidate number)
+    tstatus = hcat([1:1:N;], tstatus) # Put indexes on the 1st column
     sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
     T_arr = zeros(round(Int,endtime))
-    V = zeros(Int8,V0) # V contains nodes_name of the vaccinated individuals, to be obtained from Cambridge
+    V = zeros(Int8, V0)
 
     # Compute the parameters of the clusters
     hhsize_arr = fn_par_cluster(N, par_hh, par_community, "household") # Define the sizes of each household
@@ -511,6 +518,7 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
 
         # Set local variables
         nstatus_fn = nstatus
+        tstatus_fn = tstatus
         sbm_sol_fn = sbm_sol
 
         nstatus_fn = fn_importcases(par_disease, importcasenum_timeseries, nstatus_fn, timestep1) # Import cases
@@ -521,7 +529,7 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
 
         if size(transmit_indexes,1)>0 # Check if there are infectees
 
-            nstatus_fn = fn_spread(par_disease, nstatus_fn, transmit_indexes, V, timestep1) # Spread the diseae within the network and update nstatus
+            nstatus_fn = fn_spread(par_disease, nstatus_fn, transmit_indexes, tstatus_fn, timestep1) # Spread the diseae within the network and update nstatus
 
             # Count number of occurrences of SEIRV at a particular timestep
             for timestep2 in timestep1:(round(Int,endtime))
@@ -538,6 +546,7 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
         end
         sbm_sol = sbm_sol_fn
         nstatus = nstatus_fn
+        tstatus = tstatus_fn
 
         # Compute R0 in a network
         if timestep1 == round(Int,endtime)
@@ -557,5 +566,5 @@ function fn_transmodel(N, par_hh, par_community, par_prob, par_disease, import_l
     sbm_sol_mat[:,3] = sbm_sol[:,3]
     sbm_sol_mat[:,4] = sbm_sol[:,4]
     sbm_sol_mat[:,5] = sbm_sol[:,5]
-    return sbm_sol_mat, nstatus, communitysize_arr, communitynum_arr, T, R0
+    return sbm_sol_mat, nstatus, tstatus, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, T, R0
 end
