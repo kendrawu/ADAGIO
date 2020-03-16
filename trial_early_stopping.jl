@@ -49,7 +49,8 @@ par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_
 # Use Ebola-like parameters (from Hitchings (2018)) - Gamma-distributed
 #par_disease = DataFrame(incubperiod_shape=3.11, incubperiod_rate=0.32, infectperiod_shape=1.13, infectperiod_rate=0.226)
 # Use COVID-19-like parameters (from Li et al (2020)) - Gamma-distributed
-par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
+#par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
+par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5, infectperiod_rate=0.8)
 
 nsim = 5 # Number of simulations
 trial_begintime = 10.0
