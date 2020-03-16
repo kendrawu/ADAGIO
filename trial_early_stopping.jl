@@ -20,7 +20,7 @@ V0 = 0 # Number of vaccinated individuals in the population at day 0
 casenum0 = 5 # Number of infectious individuals introduced into the community to begin the outbreak
 immunenum0 = 0 # Number of people who are immune to the disease at the beginning of the outbreak
 import_lambda = 0 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
-lambda0 = 0.0002 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+lambda0 = 0.0003 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
 
 ## The households
 # hhnum: Number of households in the network
@@ -50,9 +50,9 @@ par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_
 #par_disease = DataFrame(incubperiod_shape=3.11, incubperiod_rate=0.32, infectperiod_shape=1.13, infectperiod_rate=0.226)
 # Use COVID-19-like parameters (from Li et al (2020)) - Gamma-distributed
 #par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
-par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5, infectperiod_rate=0.8)
+par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5.0, infectperiod_rate=0.8)
 
-nsim = 5 # Number of simulations
+nsim = 10 # Number of simulations
 trial_begintime = 10.0
 trial_endtime = endtime
 prop_in_trial = 0.6 # Proportion of the population/ cluster will be enrolled in the trial
