@@ -101,9 +101,6 @@ timestep_fn = endtime
 (n_control, n_treatment, n_infected_control, n_infected_treatment, VE_true1) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
 samplesize1 = fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_infected_treatment, treatment_gp, timestep_fn, alpha, power)
 TTE1 = fn_TTE(nstatus1, tstatus1, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
-println("Vaccine efficacy: ", VE_true1)
-println("Sample size: ", samplesize1)
-println("TTE: ", TTE1)
 
 if nsim==1
     soln_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
@@ -123,6 +120,12 @@ end
 if nsim>=2
     (soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T, R0) = fn_iternation(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
 end
+
+# Results
+println("Average sample size (from true cases): ", mean(samplesize_mat))
+println("Average number of infected people: ", n_infected_control+n_infected_treatment)
+println("Time-to-Event: ", mean(TTE_mat[:,2]))
+println("Vaccine efficacy: ", mean(VE_true_mat))
 
 Y = fn_divide(soln_mat, endtime, nsim, 3)
 lowerCI = zeros(round(Int,endtime))
