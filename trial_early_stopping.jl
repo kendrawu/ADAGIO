@@ -52,17 +52,17 @@ par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_
 #par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
 par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5.0, infectperiod_rate=0.8)
 
-nsim = 1 # Number of simulations
-trial_begintime = 70.0
+nsim = 30 # Number of simulations
+trial_begintime = 10.0
 trial_endtime = endtime
 prop_in_trial = 0.6 # Proportion of the population/ cluster will be enrolled in the trial
 prop_in_highrisk = 0.2 # Proportion of the population/ in the cluster are at high risk
-trial_communitynum = [1 2]
+trial_communitynum = [1]
 treatment_gp = 1 # it needs to be an integer, not an array
 vac_efficacy = [0.6]
 protection_threshold = 0.5
 stage = 2 # Number of interim analyses will be done in the trial
-allocation_ratio = [0.5 0.5]
+allocation_ratio = [0.49 0.52]
 #allocation_ratio = [0.9/(0.9+1) 1/(1+0.9)]
 #allocation_ratio = [0.78/(0.0018+0.78) 0.0018/(0.0018+0.78)]
 alpha = 0.9 # Desired type I error
@@ -78,7 +78,7 @@ gamma_infectperiod_duration = rand(Gamma(par_disease[1,:infectperiod_shape],1/pa
 gamma_infectperiod_maxduration = maximum(gamma_infectperiod_duration)
 gamma_incubperiod_duration = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1000)
 gamma_incubperiod_maxduration = maximum(gamma_incubperiod_duration)
-method = "cRCT_non_adaptive"
+method = "iRCT_non_adaptive"
 
 # Initialization
 samplesize_truecases = zeros(nsim) # Sample size based on true cases
@@ -87,6 +87,11 @@ Z = zeros(stage, length(allocation_ratio)) # Wald test statistics for efficacy a
 
 include("sbm_fn.jl") # load all the required functions
 include("trial_fn.jl")
+
+if method=="iRCT_MLE"
+    MLE = fn_adapt_freq_MLE(par0, method, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
+    println("MLE ", MLE)
+end
 
 if method=="iRCT_Bayes"
     posterior = fn_adapt_Bayes(nsim)
@@ -97,14 +102,12 @@ if method=="iRCT_non_adaptive"
     (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
     (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
     (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
-    #tstatus = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
-    #tstatus = fn_trialsetup_contacts(Gc, nstatus, infector_node_name, communitynum_arr, timestep)
     (nstatus1, tstatus1, soln1, T1, R01) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
     # Determine operation characteristics
     timestep_fn = endtime
-    (n_control, n_treatment, n_infected_control, n_infected_treatment, VE_true1) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-    samplesize1 = fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_infected_treatment, treatment_gp, timestep_fn, alpha, power)
+    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true1) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize1 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
     TTE1 = fn_TTE(nstatus1, tstatus1, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
     if nsim==1
@@ -133,13 +136,13 @@ end
 if method=="cRCT_non_adaptive"
     (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
     (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
-    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_cRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
+    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
     (nstatus1, tstatus1, soln1, T1, R01) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
     # Determine operation characteristics
     timestep_fn = endtime
-    (n_control, n_treatment, n_infected_control, n_infected_treatment, VE_true1) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-    samplesize1 = fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_infected_treatment, treatment_gp, timestep_fn, alpha, power)
+    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true1) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize1 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
     TTE1 = fn_TTE(nstatus1, tstatus1, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
     if nsim==1
@@ -165,11 +168,13 @@ if method=="cRCT_non_adaptive"
 #    throw(ArgumentError("Adaptive method unknown."))
 end
 
+
 # Results
 println("Average sample size (from true cases): ", mean(samplesize_mat))
-println("Average number of infected people: ", n_infected_control+n_infected_treatment)
-println("Time-to-Event: ", mean(TTE_mat[:,2]))
-println("Vaccine efficacy: ", mean(VE_true_mat))
+println("Average number of infectious people in the trial: ", n_infectious_control+n_infectious_treatment)
+println("Average number of exposed people in the trial: ", n_exposed_control+n_exposed_treatment)
+println("Time-to-Event: ", mean(filter(isfinite, TTE_mat[:,2]))
+println("Vaccine efficacy: ", mean(filter(isfinite, VE_true_mat))
 
 Y = fn_divide(soln_mat, endtime, nsim, 3)
 lowerCI = zeros(round(Int,endtime))

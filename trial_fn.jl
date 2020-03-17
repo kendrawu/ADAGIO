@@ -363,6 +363,61 @@ function fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_eff
     return tstatus_fn, nodes_in_control, nodes_in_treatment
 end
 
+# Function to generate imported cases and randomly distribute them into different clusters
+function fn_importcases_cRCT(par_disease, importcasenum_timeseries, nstatus, communitynum_arr, timestep)
+
+    # Inputs:
+    # par_disease: User-defined parameters of the disease
+    # importcasenum_timeseries: Array that holds number of infectious individuals introduced into the community throughout the duration of the outbreak
+    # nstatus: Health statuses of all individuals in the population at each time step
+    # communitynum_arr: Holds the community number of each individuals in the population
+    # timestep: The time t of the outbreak
+
+    # Output:
+    # nstatus_fn: Health statuses of all individuals in the population at each time step
+
+    # Create a local variable for nstatus
+    nstatus_fn = nstatus
+
+    # From importcasesnum_timeseries, obtain number of import cases at t=timestep
+    casenum = importcasenum_timeseries[timestep]
+
+    # Generate node_names of imported cases at t=timestep
+    s_elements = findall(x->x=='S', nstatus_fn[:,timestep+1])
+    communitynum_elements = findall(x->x==trial_communitynum[1], communitynum_arr)
+    s_elements_communitynum = intersect(s_elements, communitynum_elements)
+    importcases = sample(s_elements_communitynum, casenum, replace=false) # Sampling without replacement
+
+    # Compute the parameters for disease properties
+    #incubperiod_avg = ceil(par_disease[1,:incubperiod_shape]/par_disease[1,:incubperiod_rate])
+    #infectperiod_avg = ceil(par_disease[1,:infectperiod_shape]/par_disease[1,:infectperiod_rate])
+    incubperiod = zeros(length(importcases)) # Incubation period of the disease
+    infectperiod = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),length(importcases)) # Infectious period of the disease
+
+    for index1 in 1:(length(importcases))
+
+        # Set time boundaries according to incubation and infectious periods, and time should not exceed endtime.
+        tbound1 = ceil(Int, min(timestep + ceil(incubperiod[index1,1]), round(Int,endtime)))
+        tbound2 = ceil(Int, min(timestep + ceil(incubperiod[index1,1]) + ceil(infectperiod[index1,1]), round(Int,endtime)))
+
+        # column_index start at 2 because nstatus_fn[:,1] is nodes_name
+        # for index2 in timestep:(round(Int,tbound1))
+        #    nstatus_fn[importcases[index1],index2+1] = "E"
+        # end
+
+        for index3 in tbound1:tbound2
+            nstatus_fn[importcases[index1],index3+1] = 'I'
+        end
+
+        for index4 in (tbound2+1):(round(Int,endtime))
+            nstatus_fn[importcases[index1],index4+1] = 'R'
+        end
+
+    end
+
+    return nstatus_fn
+end
+
 # Function to enroll the population into trial by community cluster(s)
 function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
 
@@ -397,8 +452,8 @@ function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communit
     for index1 in 1:length(trial_communitynum)
         communitysize = communitysize_arr[index1] # Obtain size of community selected for trial
         enrolsize = ceil(Int,communitysize*prop_in_trial) # Size of enrollment in the community
-        println("Enrollment size = ", enrolsize)
-        println("index1 = ", index1)
+        #println("Enrollment size = ", enrolsize)
+        #println("index1 = ", index1)
         potential_nodes_in_trial_index = findall(x->x==index1, tstatus_fn[:,3]) # Find everyone who are in this community
 
         if (size(potential_nodes_in_trial_index)[1])>0
@@ -430,6 +485,7 @@ function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communit
     end
 
     tstatus_fn = tstatus_fn[:,1:2] # Only keep the first 2 columns
+
     return tstatus_fn, nodes_in_control, nodes_in_treatment
 end
 
@@ -514,8 +570,8 @@ function fn_iternation_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
     (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
     timestep_fn = endtime
-    (n_control, n_treatment, n_infected_control, n_infected_treatment, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-    samplesize2 = fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_infected_treatment, treatment_gp, timestep_fn, alpha, power)
+    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize2 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
     TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
     soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
@@ -540,8 +596,8 @@ function fn_iternation_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
         (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
         timestep_fn = endtime
-        (n_control, n_treatment, n_infected_control, n_infected_treatment, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        samplesize3 = fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_infected_treatment, treatment_gp, timestep_fn, alpha, power)
+        (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        samplesize3 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
         TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
         soln3_mat = zeros(Int, round(Int,endtime), 5)
@@ -578,7 +634,7 @@ function fn_iternation_iRCT_MLE(nsim, soln1, tstatus1, VE_true1, samplesize1, N,
     (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
     timestep_fn = endtime
-    (n_control, n_treatment, n_infected_control, n_infected_treatment, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
     samplesize2 = fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_infected_treatment, treatment_gp, timestep_fn, alpha, power)
     TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
@@ -604,7 +660,7 @@ function fn_iternation_iRCT_MLE(nsim, soln1, tstatus1, VE_true1, samplesize1, N,
         (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
         timestep_fn = endtime
-        (n_control, n_treatment, n_infected_control, n_infected_treatment, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
         samplesize3 = fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_infected_treatment, treatment_gp, timestep_fn, alpha, power)
         TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
@@ -760,8 +816,10 @@ function fn_vaccine_efficacy(tstatus, nstatus, timestep, treatment_gp)
     # Outputs:
     # n_control: Number of people in the control group
     # n_treatment: Number of people in the treatment group
-    # n_infected_control: Number of infectious people in the control group
-    # n_infected_treatment: Number of infectious people in the treatment group
+    # n_infectious_control: Number of infectious people in the control group
+    # n_infectious_treatment: Number of infectious people in the treatment group
+    # n_expoed_control: Number of exposed people in the control group
+    # n_expoed_treatment: Number of exposed people in the treatment group
     # VE_true: Vaccine efficacy between control and treatment_gp
 
     # Determine the number of people who are in the control group
@@ -769,39 +827,55 @@ function fn_vaccine_efficacy(tstatus, nstatus, timestep, treatment_gp)
     n_control = length(nodes_control)
 
     # Determine the ones who have been infectious (I) from day 1 to t=timestep
-    nodes_infected1 = findall(x->x=='I', nstatus[:,1+1])
-    nodes_infected2 = findall(x->x=='I', nstatus[:,2+1])
-    nodes_infected = vcat(nodes_infected1, nodes_infected2)
+    nodes_infectious1 = findall(x->x=='I', nstatus[:,1+1])
+    nodes_infectious2 = findall(x->x=='I', nstatus[:,2+1])
+    nodes_infectious = vcat(nodes_infectious1, nodes_infectious2)
     for t in 3:(round(Int,timestep))
-        nodes_infected3 = findall(x->x=='I', nstatus[:,t+1])
-        nodes_infected = vcat(nodes_infected, nodes_infected3)
+        nodes_infectious3 = findall(x->x=='I', nstatus[:,t+1])
+        nodes_infectious = vcat(nodes_infectious, nodes_infectious3)
     end
-    nodes_infected = unique(nodes_infected) # Determine the cumulative incidence
+    nodes_infectious = unique(nodes_infectious) # Determine the cumulative incidence
 
     # Determine the cumulative incidence from day 1 to t=timestep of the ones in control group
-    nodes_infected_control = intersect(nodes_control, nodes_infected)
-    n_infected_control = length(nodes_infected_control)
+    nodes_infectious_control = intersect(nodes_control, nodes_infectious)
+    n_infectious_control = length(nodes_infectious_control)
+
+    # Determine the ones who have been exposed (E) from day 1 to t=timestep
+    nodes_exposed1 = findall(x->x=='E', nstatus[:,1+1])
+    nodes_exposed2 = findall(x->x=='E', nstatus[:,2+1])
+    nodes_exposed = vcat(nodes_exposed1, nodes_exposed2)
+    for t in 3:(round(Int,timestep))
+        nodes_exposed3 = findall(x->x=='E', nstatus[:,t+1])
+        nodes_exposed = vcat(nodes_exposed, nodes_exposed3)
+    end
+    nodes_exposed = unique(nodes_exposed) # Determine the cumulative incidence
+
+    # Determine the cumulative incidence from day 1 to t=timestep of the ones in control group
+    nodes_exposed_control = intersect(nodes_control, nodes_exposed)
+    n_exposed_control = length(nodes_exposed_control)
 
     # Determine the cumulative incidence of the ones in treatment_gp
     nodes_treatment = findall(x->x==treatment_gp, tstatus[:,2])
     n_treatment = length(nodes_treatment)
-    nodes_infected_treatment = intersect(nodes_treatment, nodes_infected)
-    n_infected_treatment = length(nodes_infected_treatment)
+    nodes_infectious_treatment = intersect(nodes_treatment, nodes_infectious)
+    n_infectious_treatment = length(nodes_infectious_treatment)
+    nodes_exposed_treatment = intersect(nodes_treatment, nodes_exposed)
+    n_exposed_treatment = length(nodes_exposed_treatment)
 
     # Compute vaccine efficacy based on true cases
-    VE_true = 1-((n_infected_treatment/n_treatment)/ (n_infected_control/n_control))
+    VE_true = 1-((n_infectious_treatment/n_treatment)/ (n_infectious_control/n_control))
 
-    return n_control, n_treatment, n_infected_control, n_infected_treatment, VE_true
+    return n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true
 end
 
 # Function to return sample size of one treatment group based on number of true observed cumulative cases
-function fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_infected_treatment, treatment_gp, timestep, alpha, power)
+function fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep, alpha, power)
 
     # Inputs:
     # n_control: Number of people in the control group
     # n_treatment: Number of people in the treatment group
-    # n_infected_control: Number of infectious people in the control group
-    # n_infected_treatment: Number of infectious people in the treatment group
+    # n_infectious_control: Number of infectious people in the control group
+    # n_infectious_treatment: Number of infectious people in the treatment group
     # treatment_gp: The treatment group number that we are comparing with control group
     # timestep: Time that end observation (from day 1 of outbreak)
     # alpha: Desired type I error
@@ -815,8 +889,8 @@ function fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_i
     z_alpha = quantile(d, alpha)
     z_beta = quantile(d, power)
 
-    p1 = (n_treatment - n_infected_treatment)/ n_treatment # Proportion of people not infected in treatment group
-    p2 = (n_control - n_infected_control)/ n_control # Proportion of people not infected in control group
+    p1 = (n_treatment - n_infectious_treatment)/ n_treatment # Proportion of people not infected in treatment group
+    p2 = (n_control - n_infectious_control)/ n_control # Proportion of people not infected in control group
 
     # Compute sample size based on true cases
     samplesize_truecases = ((z_alpha+z_beta)^2 * ((p1*(1-p1) + p2*(1-p2))))/ (p1-p2)^2
@@ -957,7 +1031,7 @@ function fn_testStat(tstatus, sigma, allocation_ratio, J, alpha, power, delta, e
     return samplesize_est, Z, decision
 end
 
-function fn_adapt_freq_MLE(par0, method, n_control, n_treatment, n_infected_control, n_infected_treatment)
+function fn_adapt_freq_MLE(par0, method, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
 
     # The allocation_prob is of treatment arm relative to control group
 
@@ -972,23 +1046,23 @@ function fn_adapt_freq_MLE(par0, method, n_control, n_treatment, n_infected_cont
     # Output:
     # MLE: Maximum Likelihood Estimation of function fn_MLE(p)
 
-    success_control = n_control - n_infected_control
-    success_treatment = n_treatment - n_infected_treatment
+    success_control = n_control - n_infectious_control
+    success_treatment = n_treatment - n_infectious_treatment
 
     p0 = success_control/ n_control
     p1 = success_treatment/ n_treatment
 
-    if method == "Rosenberger"
-        P = sqrt(p1/p0)
-        allocation_prob = P/(P+1)
-        optimum = optimize(fn_MLE_Rosenberger, par0)
-        MLE = optimum.minium
-    elseif method == "Neyman"
-        optimum = optimize(fn_MLE_Neyman, par0)
-        MLE = optimum.minium
-    else
-        throw(ArgumentError("Incorrect method defined."))
-    end
+    #if method == "Rosenberger"
+        #P = sqrt(p1/p0)
+        #allocation_prob = P/(P+1)
+        optimum = optimize(fn_MLE_Rosenberger_for_adapt, par0)
+        MLE = optimum.minimum
+    #elseif method == "Neyman"
+        #optimum = optimize(fn_MLE_Neyman, par0)
+        #MLE = optimum.minium
+    #else
+        #throw(ArgumentError("Incorrect method defined."))
+    #end
 
     return MLE
 end
@@ -1018,13 +1092,14 @@ function fn_adapt_freq(method, timestep)
         for i in 1:length(p0), j in 1:length(p1)
             P = sqrt(p1[j]/p0[i])
             allocation_prob = P/(P+1)
-            optimum = optimize(fn_MLE_Rosenberger, par0)
+            fn_MLE_Rosenberger_for_adapt(p) = sqrt(p1/p0)/((sqrt(p1/p0))+1)
+            optimum = optimize(fn_MLE_Rosenberger_for_adapt, [0.1, 0.1])
             MLE[counter1] = optimum.minimum
             if MLE[counter1] == minimum(MLE)
                 push!(element_selected_p0::Array{Float64,1},p0[i])
                 push!(element_selected_p1::Array{Float64,1},p1[j])
             end
-            global counter1 = counter1 + 1
+            #global counter1 = counter1 + 1
         end
     elseif method == "Neyman"
         for i in 1:length(p0), j in 1:length(p1)
@@ -1034,7 +1109,7 @@ function fn_adapt_freq(method, timestep)
                 push!(element_selected_p0::Array{Float64,1},p0[i])
                 push!(element_selected_p1::Array{Float64,1},p1[j])
             end
-            global counter2 = counter2 + 1
+            #global counter2 = counter2 + 1
         end
     else
         throw(ArgumentError("Incorrect method defined."))
