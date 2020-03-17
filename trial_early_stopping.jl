@@ -62,7 +62,7 @@ treatment_gp = 1 # it needs to be an integer, not an array
 vac_efficacy = [0.6]
 protection_threshold = 0.5
 stage = 2 # Number of interim analyses will be done in the trial
-allocation_ratio = [0.49 0.52]
+allocation_ratio = [0.5 0.5]
 #allocation_ratio = [0.9/(0.9+1) 1/(1+0.9)]
 #allocation_ratio = [0.78/(0.0018+0.78) 0.0018/(0.0018+0.78)]
 alpha = 0.9 # Desired type I error
@@ -173,8 +173,8 @@ end
 println("Average sample size (from true cases): ", mean(samplesize_mat))
 println("Average number of infectious people in the trial: ", n_infectious_control+n_infectious_treatment)
 println("Average number of exposed people in the trial: ", n_exposed_control+n_exposed_treatment)
-println("Time-to-Event: ", mean(filter(isfinite, TTE_mat[:,2]))
-println("Vaccine efficacy: ", mean(filter(isfinite, VE_true_mat))
+println("Time-to-Event: ", mean(filter(isfinite, TTE_mat[:,2])))
+println("Vaccine efficacy: ", mean(filter(isfinite, VE_true_mat)))
 
 Y = fn_divide(soln_mat, endtime, nsim, 3)
 lowerCI = zeros(round(Int,endtime))
