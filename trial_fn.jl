@@ -363,13 +363,14 @@ function fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_eff
     return tstatus_fn, nodes_in_control, nodes_in_treatment
 end
 
-# Function to generate imported cases and randomly distribute them into different clusters
-function fn_importcases_cRCT(par_disease, importcasenum_timeseries, nstatus, communitynum_arr, timestep)
+# Function to generate imported cases and distribute them into a specific clusters
+function fn_importcases_cRCT(par_disease, importcasenum_timeseries, nstatus, trial_communitynum, communitynum_arr, timestep)
 
     # Inputs:
     # par_disease: User-defined parameters of the disease
     # importcasenum_timeseries: Array that holds number of infectious individuals introduced into the community throughout the duration of the outbreak
     # nstatus: Health statuses of all individuals in the population at each time step
+    # trial_communitynum: The communitynum that will be recruited
     # communitynum_arr: Holds the community number of each individuals in the population
     # timestep: The time t of the outbreak
 
@@ -416,6 +417,91 @@ function fn_importcases_cRCT(par_disease, importcasenum_timeseries, nstatus, com
     end
 
     return nstatus_fn
+end
+
+function fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, intermediatetime1, intermediatetime2, endtime)
+
+    # Inputs:
+    # nstatus: Health statuses of all the individuals in the population at each time step
+    # tstatus: The trial statuses of each individual in the population
+    # sbm_sol: The incidences of SEIRV of all timesteps
+    # par_hh: User-defined parameters of the households
+    # par_community: User-defined parameters of the network clusters
+    # par_prob: User-defined contact and transmission probabilities between two nodes
+    # par_disease: User-defined parameters of the disease
+    # hhsize_arr: Sizes of each household
+    # communitysize_arr: Sizes of each community
+    # hhnum_arr: Household number of each individuals in the population
+    # trial_communitynum: Communitynum that will be recruited
+    # communitynum_arr: Community number of each individuals in the population
+    # importcasenum_timeseries: node_names of imported cases on a time series for the duration of the outbreak
+    # Gc: The who-contact-whom network map
+    # intermediatetime1: The immediate start time of a segment of the outbreak
+    # intermediatetime2: The immediate end time of a segment of the outbreak
+    # endtime: The end simulation of the entire outbreak
+
+    # Outputs:
+    # nstatus: Health statuses of all the individuals in the population at each time step
+    # tstatus: The trial statuses of each individual in the population
+    # sbm_sol: The incidences of SEIRV of all timesteps
+    # T: Transmissibility
+    # R0: Basic reproductive number
+
+    # Initializations
+    T_arr = zeros(round(Int,endtime))
+    V = zeros(Int8,V0) # V contains nodes_name of the vaccinated individuals
+
+    # Begin transmission
+    N = size(nstatus)[1]
+
+    for timestep1 in (round(Int,intermediatetime1)):(round(Int,intermediatetime2))
+
+        # Set local variables
+        nstatus_fn = nstatus
+        tstatus_fn = tstatus
+        sbm_sol_fn = sbm_sol
+        Gc_fn = Gc
+
+        nstatus_fn = fn_importcases_cRCT(par_disease, importcasenum_timeseries, nstatus_fn, trial_communitynum, communitynum_arr, timestep1) # Import cases
+        Gt = fn_transmit_network(Gc_fn, par_prob, hhnum_arr, communitynum_arr, nstatus_fn, timestep1) # Construct a who-infect-whom stochastic block network based on the contact network Gc
+        potential_transmit_indexes = fn_findnonzeros(Gt) # The index numbers that will have disease transmission according to the stochastic block network model
+        transmit_indexes = fn_uniqueS(potential_transmit_indexes, nstatus_fn, timestep1) # Check if potential_transmit_indexes are susceptibles
+        T_arr[timestep1] = fn_computeT(N, par_prob, Gc_fn, nstatus_fn, hhnum_arr, communitynum_arr, timestep1)
+
+        if size(transmit_indexes,1)>0 # Check if there are infectees
+
+            nstatus_fn = fn_spread(par_disease, nstatus_fn, transmit_indexes, tstatus_fn, timestep1) # Spread the diseae within the network and update nstatus
+
+            # Count number of occurrences of SEIRV at a particular timestep
+            for timestep2 in timestep1:(round(Int,intermediatetime2))
+
+                D = fn_countelements(nstatus_fn[:,timestep2+1]) # Count number of occurrences of SEIRV at a particular t=timestep2
+
+                # Put these SEIRV incidence values into a DataFrame sbm_sol_fn
+                sbm_sol_fn[timestep2,:S] = D[1,:S] # Put S value into the appropriate cell
+                sbm_sol_fn[timestep2,:E] = D[1,:E] # Put E value into the appropriate cell
+                sbm_sol_fn[timestep2,:I] = D[1,:I] # Put I value into the appropriate cell
+                sbm_sol_fn[timestep2,:R] = D[1,:R] # Put R value into the appropriate cell
+                sbm_sol_fn[timestep2,:V] = D[1,:V] # Put V value into the appropriate cell
+            end
+        end
+        sbm_sol = sbm_sol_fn
+        nstatus = nstatus_fn
+        tstatus = tstatus_fn
+        Gc = Gc_fn
+
+        # Compute R0 in a network
+        if timestep1 == round(Int,intermediatetime2)
+            k = sum(sum(Gc))/N # mean degree of the network
+            T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact
+            R0 = T * (k^2/k - 1)
+            println("k = ", k, ", T = ",T, ", and R0 = ",R0)
+
+            global T
+            global R0
+        end
+    end
+    return nstatus, tstatus, sbm_sol, T, R0
 end
 
 # Function to enroll the population into trial by community cluster(s)
@@ -491,6 +577,69 @@ function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communit
     return tstatus_fn
 end
 
+function fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+
+    soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
+    soln1_mat[:,1] = soln1[:,1]
+    soln1_mat[:,2] = soln1[:,2]
+    soln1_mat[:,3] = soln1[:,3]
+    soln1_mat[:,4] = soln1[:,4]
+    soln1_mat[:,5] = soln1[:,5]
+
+    (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+    (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
+    tstatus = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+    (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
+
+    timestep_fn = endtime
+    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize2 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
+    TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+
+    soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
+    soln2_mat[:,1] = soln2[:,1]
+    soln2_mat[:,2] = soln2[:,2]
+    soln2_mat[:,3] = soln2[:,3]
+    soln2_mat[:,4] = soln2[:,4]
+    soln2_mat[:,5] = soln2[:,5]
+    soln_mat = vcat(soln1_mat, soln2_mat)
+    nstatus_mat = vcat(nstatus1, nstatus2)
+    tstatus_mat = vcat(tstatus1, tstatus2)
+    VE_true_mat = vcat(VE_true1, VE_true2)
+    samplesize_mat = vcat(samplesize1, samplesize2)
+    TTE_mat = vcat(TTE1, TTE2)
+    T = vcat(T1, T2)
+    R0 = vcat(R01, R02)
+
+    for itern = 3:nsim
+        (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+        (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
+        tstatus = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+        (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
+
+        timestep_fn = endtime
+        (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        samplesize3 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
+        TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+
+        soln3_mat = zeros(Int, round(Int,endtime), 5)
+        soln3_mat[:,1] = soln3[:,1]
+        soln3_mat[:,2] = soln3[:,2]
+        soln3_mat[:,3] = soln3[:,3]
+        soln3_mat[:,4] = soln3[:,4]
+        soln3_mat[:,5] = soln3[:,5]
+        soln_mat = vcat(soln_mat, soln3_mat)
+        nstatus_mat = vcat(nstatus_mat, nstatus3)
+        tstatus_mat = vcat(tstatus_mat, tstatus3)
+        VE_true_mat = vcat(VE_true_mat, VE_true3)
+        samplesize_mat = vcat(samplesize_mat, samplesize3)
+        TTE_mat = vcat(TTE_mat, TTE3)
+        T = vcat(T, T3)
+        R0 = vcat(R0, R03)
+    end
+
+    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T, R0
+end
 
 # Function to enroll the contact list of a infector into the trial
 function fn_trialsetup_contacts(Gc, nstatus, infector_node_name, communitynum_arr, timestep)
