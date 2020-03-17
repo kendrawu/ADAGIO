@@ -337,7 +337,7 @@ function fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_eff
 
     # Enrollment size
     enrolsize = ceil(Int,length(potential_nodes_notrial_index)*prop_in_trial)
-    println("Enrollment size = ", enrolsize)
+    #println("Enrollment size = ", enrolsize)
 
     if length(potential_nodes_notrial_index)>0
         # Select those who will be enrolled into the trial
@@ -347,9 +347,9 @@ function fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_eff
         end
         nodes_in_treatment = sample(nodes_in_trial, ceil(Int,length(potential_nodes_notrial_index)*prop_in_trial*allocation_ratio[2]), replace=false, ordered=true)
         nodes_in_control = setdiff(nodes_in_trial, nodes_in_treatment)
-        println("Individuals in trial = ", length(nodes_in_trial))
-        println("Individuals in treatment = ", length(nodes_in_treatment))
-        println("Individuals in control = ", length(nodes_in_control))
+        #println("Individuals in trial = ", length(nodes_in_trial))
+        #println("Individuals in treatment = ", length(nodes_in_treatment))
+        #println("Individuals in control = ", length(nodes_in_control))
 
         # Assign trial statuses and update tstatus_fn
         for index3 in 1:length(nodes_in_treatment)
@@ -380,11 +380,11 @@ function fn_importcases_cRCT(par_disease, importcasenum_timeseries, nstatus, com
     nstatus_fn = nstatus
 
     # From importcasesnum_timeseries, obtain number of import cases at t=timestep
-    casenum = importcasenum_timeseries[timestep]
+    casenum = importcasenum_timeseries[round(Int,timestep)]
 
     # Generate node_names of imported cases at t=timestep
-    s_elements = findall(x->x=='S', nstatus_fn[:,timestep+1])
-    communitynum_elements = findall(x->x==trial_communitynum[1], communitynum_arr)
+    s_elements = findall(x->x=='S', nstatus_fn[:,round(Int,timestep)+1])
+    communitynum_elements = findall(x->x==trial_communitynum[1], communitynum_arr) # for now
     s_elements_communitynum = intersect(s_elements, communitynum_elements)
     importcases = sample(s_elements_communitynum, casenum, replace=false) # Sampling without replacement
 
@@ -397,8 +397,8 @@ function fn_importcases_cRCT(par_disease, importcasenum_timeseries, nstatus, com
     for index1 in 1:(length(importcases))
 
         # Set time boundaries according to incubation and infectious periods, and time should not exceed endtime.
-        tbound1 = ceil(Int, min(timestep + ceil(incubperiod[index1,1]), round(Int,endtime)))
-        tbound2 = ceil(Int, min(timestep + ceil(incubperiod[index1,1]) + ceil(infectperiod[index1,1]), round(Int,endtime)))
+        tbound1 = ceil(Int, min(round(Int,timestep) + ceil(incubperiod[index1,1]), round(Int,endtime)))
+        tbound2 = ceil(Int, min(round(Int,timestep) + ceil(incubperiod[index1,1]) + ceil(infectperiod[index1,1]), round(Int,endtime)))
 
         # column_index start at 2 because nstatus_fn[:,1] is nodes_name
         # for index2 in timestep:(round(Int,tbound1))
@@ -450,7 +450,7 @@ function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communit
     tstatus_fn = hcat(tstatus, communitynum_arr)
 
     for index1 in 1:length(trial_communitynum)
-        communitysize = communitysize_arr[index1] # Obtain size of community selected for trial
+        communitysize = communitysize_arr[trial_communitynum[index1]] # Obtain size of community selected for trial
         enrolsize = ceil(Int,communitysize*prop_in_trial) # Size of enrollment in the community
         #println("Enrollment size = ", enrolsize)
         #println("index1 = ", index1)
@@ -471,22 +471,24 @@ function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communit
         end
         nodes_in_treatment = sample(nodes_in_trial, ceil(Int,communitysize*prop_in_trial*allocation_ratio[2]), replace=false, ordered=true)
         nodes_in_control = setdiff(nodes_in_trial, nodes_in_treatment)
-        println("Individuals in trial = ", length(nodes_in_trial) , nodes_in_trial)
-        println("Individuals in treatment = ", length(nodes_in_treatment) , nodes_in_treatment)
-        println("Individuals in control = ", length(nodes_in_control) , nodes_in_control)
+        #println("Individuals in trial = ", length(nodes_in_trial))
+        #println("Individuals in treatment = ", length(nodes_in_treatment))
+        #println("Individuals in control = ", length(nodes_in_control))
 
         # Assign trial statuses and update tstatus_fn
         for index3 in 1:length(nodes_in_treatment)
             tstatus_fn[nodes_in_treatment[index3],2] = 1 # In treatment group
         end
-        for index4 in 1:length(nodes_in_control)
-            tstatus_fn[nodes_in_control[index4],2] = 0 # In control group
+        if length(nodes_in_control)>0
+            for index4 in 1:length(nodes_in_control)
+                tstatus_fn[nodes_in_control[index4],2] = 0 # In control group
+            end
         end
     end
 
     tstatus_fn = tstatus_fn[:,1:2] # Only keep the first 2 columns
 
-    return tstatus_fn, nodes_in_control, nodes_in_treatment
+    return tstatus_fn
 end
 
 

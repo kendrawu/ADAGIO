@@ -12,7 +12,7 @@ using DelimitedFiles
 using Plots
 
 # Set parameter values
-N = 1000 # Total population size
+N = 3000 # Total population size
 begintime = 1.0
 endtime = 200.0 # Duration of simulation (timestep is in a unit of days)
 S0 = N # Number of suspectible people in the population at day 0
@@ -20,20 +20,20 @@ V0 = 0 # Number of vaccinated individuals in the population at day 0
 casenum0 = 5 # Number of infectious individuals introduced into the community to begin the outbreak
 immunenum0 = 0 # Number of people who are immune to the disease at the beginning of the outbreak
 import_lambda = 0 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
-lambda0 = 0.0003 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+lambda0 = 0.0001 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
 
 ## The households
 # hhnum: Number of households in the network
 # hhsize_avg: Average size of one household
 # hhsize_range: Range of household sizes (sizes are uniformly distributed)
-par_hh = DataFrame(hhnum=240, hhsize_avg=4, hhsize_range=2)
+par_hh = DataFrame(hhnum=730, hhsize_avg=4, hhsize_range=2)
 #par_hh = DataFrame(hhnum=1, hhsize_avg=500, hhsize_range=0)
 
 ## The clustered network
 # communitynum: Number of communities in the clustered network
 # communitysize_avg: Average size of one community
 # communitysize_range: Range of community sizes (sizes are uniformly distributed)
-par_community = DataFrame(communitynum=3, communitysize_avg=300, communitysize_range=10)
+par_community = DataFrame(communitynum=3, communitysize_avg=1000, communitysize_range=10)
 #par_community = DataFrame(communitynum=1, communitysize_avg=500, communitysize_range=0)
 
 ## Contact and transmission probabilities between nodes
@@ -63,6 +63,8 @@ vac_efficacy = [0.6]
 protection_threshold = 0.5
 stage = 2 # Number of interim analyses will be done in the trial
 allocation_ratio = [0.5 0.5]
+#allocation_ratio = [0.49 0.51]
+#allocation_ratio = [0.1 0.9]
 #allocation_ratio = [0.9/(0.9+1) 1/(1+0.9)]
 #allocation_ratio = [0.78/(0.0018+0.78) 0.0018/(0.0018+0.78)]
 alpha = 0.9 # Desired type I error
@@ -78,7 +80,7 @@ gamma_infectperiod_duration = rand(Gamma(par_disease[1,:infectperiod_shape],1/pa
 gamma_infectperiod_maxduration = maximum(gamma_infectperiod_duration)
 gamma_incubperiod_duration = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1000)
 gamma_incubperiod_maxduration = maximum(gamma_incubperiod_duration)
-method = "iRCT_non_adaptive"
+method = "cRCT_non_adaptive"
 
 # Initialization
 samplesize_truecases = zeros(nsim) # Sample size based on true cases
@@ -136,7 +138,8 @@ end
 if method=="cRCT_non_adaptive"
     (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
     (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
-    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+    nstatus = fn_importcases_cRCT(par_disease, importcasenum_timeseries, nstatus, communitynum_arr, trial_begintime)
+    tstatus = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
     (nstatus1, tstatus1, soln1, T1, R01) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
     # Determine operation characteristics
