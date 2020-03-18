@@ -1341,7 +1341,7 @@ end
 
 function fn_plot(X,Y)
     #plot0=([soln1[:,:S], soln1[:,:E], soln1[:,:I], soln1[:,:R], soln1[:,:V]], label=['S', 'E', 'I', 'R', 'V'])
-    plot1=plot(Y, color=["grey"], ylabel="Number of infected individuals", legend=false)
+    plot1=plot(Y, color=["grey"], ylabel="Number of infectious individuals", legend=false)
     plot2=plot([lowerCI, medianCI, upperCI], label=["5% quantile", "Median", "95% quantile"], xlabel="Time (days)")
     return (plot1, plot2)
 end
