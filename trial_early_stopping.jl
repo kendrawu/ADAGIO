@@ -20,7 +20,7 @@ V0 = 0 # Number of vaccinated individuals in the population at day 0
 casenum0 = 5 # Number of infectious individuals introduced into the community to begin the outbreak
 immunenum0 = 0 # Number of people who are immune to the disease at the beginning of the outbreak
 import_lambda = 0 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
-lambda0 = 0.0002 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+lambda0 = 0.000128 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
 
 ## The households
 # hhnum: Number of households in the network
@@ -52,7 +52,7 @@ par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_
 #par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
 par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5.0, infectperiod_rate=0.8)
 
-nsim = 30 # Number of simulations
+nsim = 25 # Number of simulations
 trial_begintime = 10.0
 trial_endtime = endtime
 prop_in_trial = 0.6 # Proportion of the population/ cluster will be enrolled in the trial
@@ -80,7 +80,7 @@ gamma_infectperiod_duration = rand(Gamma(par_disease[1,:infectperiod_shape],1/pa
 gamma_infectperiod_maxduration = maximum(gamma_infectperiod_duration)
 gamma_incubperiod_duration = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1000)
 gamma_incubperiod_maxduration = maximum(gamma_incubperiod_duration)
-method = "cRCT_non_adaptive"
+method = "iRCT_non_adaptive"
 
 # Initialization
 samplesize_truecases = zeros(nsim) # Sample size based on true cases
@@ -91,11 +91,15 @@ include("sbm_fn.jl") # load all the required functions
 include("trial_fn.jl")
 
 if method=="iRCT_MLE"
+    (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+    (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
     MLE = fn_adapt_freq_MLE(par0, method, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
     println("MLE ", MLE)
 end
 
 if method=="iRCT_Bayes"
+    (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+    (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
     posterior = fn_adapt_Bayes(nsim)
     println("Posterior: ", posterior)
 end
