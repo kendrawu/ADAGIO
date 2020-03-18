@@ -592,8 +592,8 @@ function fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
     (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
     timestep_fn = endtime
-    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-    samplesize2 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
+    (n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, n_exposed_control2, n_exposed_treatment2, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize2 = fn_samplesize_truecases(n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, treatment_gp, timestep_fn, alpha, power)
     TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
     soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
@@ -605,6 +605,8 @@ function fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
     soln_mat = vcat(soln1_mat, soln2_mat)
     nstatus_mat = vcat(nstatus1, nstatus2)
     tstatus_mat = vcat(tstatus1, tstatus2)
+    n_infectious_people_mat = vcat(n_infectious_control1 + n_infectious_treatment1, n_infectious_control2 + n_infectious_treatment2)
+    n_exposed_people_mat = vcat(n_exposed_control1 + n_exposed_treatment1, n_exposed_control2 + n_exposed_treatment2)
     VE_true_mat = vcat(VE_true1, VE_true2)
     samplesize_mat = vcat(samplesize1, samplesize2)
     TTE_mat = vcat(TTE1, TTE2)
@@ -632,6 +634,8 @@ function fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
         soln_mat = vcat(soln_mat, soln3_mat)
         nstatus_mat = vcat(nstatus_mat, nstatus3)
         tstatus_mat = vcat(tstatus_mat, tstatus3)
+        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control3 + n_infectious_treatment3)
+        n_exposed_people_mat = vcat(n_infectious_people_mat, n_exposed_control3 + n_exposed_treatment3)
         VE_true_mat = vcat(VE_true_mat, VE_true3)
         samplesize_mat = vcat(samplesize_mat, samplesize3)
         TTE_mat = vcat(TTE_mat, TTE3)
@@ -639,7 +643,7 @@ function fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
         R0_mat = vcat(R0_mat, R03)
     end
 
-    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
+    return soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
 end
 
 # Function to enroll the contact list of a infector into the trial
@@ -735,6 +739,8 @@ function fn_iternation_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
     soln_mat = vcat(soln1_mat, soln2_mat)
     nstatus_mat = vcat(nstatus1, nstatus2)
     tstatus_mat = vcat(tstatus1, tstatus2)
+    n_infectious_people_mat = vcat(n_infectious_control1 + n_infectious_treatment1, n_infectious_control2 + n_infectious_treatment2)
+    n_exposed_people_mat = vcat(n_exposed_control1 + n_exposed_treatment1, n_exposed_control2 + n_exposed_treatment2)
     VE_true_mat = vcat(VE_true1, VE_true2)
     samplesize_mat = vcat(samplesize1, samplesize2)
     TTE_mat = vcat(TTE1, TTE2)
@@ -761,6 +767,8 @@ function fn_iternation_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
         soln_mat = vcat(soln_mat, soln3_mat)
         nstatus_mat = vcat(nstatus_mat, nstatus3)
         tstatus_mat = vcat(tstatus_mat, tstatus3)
+        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control3 + n_infectious_treatment3)
+        n_exposed_people_mat = vcat(n_exposed_people_mat, n_exposed_control3 + n_exposed_treatment3)
         VE_true_mat = vcat(VE_true_mat, VE_true3)
         samplesize_mat = vcat(samplesize_mat, samplesize3)
         TTE_mat = vcat(TTE_mat, TTE3)
@@ -768,7 +776,7 @@ function fn_iternation_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
         R0_mat = vcat(R0_mat, R03)
     end
 
-    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
+    return soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
 end
 
 function fn_iternation_iRCT_MLE(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
@@ -800,6 +808,8 @@ function fn_iternation_iRCT_MLE(nsim, soln1, tstatus1, VE_true1, samplesize1, N,
     nstatus_mat = vcat(nstatus1, nstatus2)
     tstatus_mat = vcat(tstatus1, tstatus2)
     VE_true_mat = vcat(VE_true1, VE_true2)
+    n_infectious_people_mat = vcat(n_infectious_control1 + n_infectious_treatment1, n_infectious_control2 + n_infectious_treatment2)
+    n_exposed_people_mat = vcat(n_exposed_control1 + n_exposed_treatment1, n_exposed_control2 + n_exposed_treatment2)
     samplesize_mat = vcat(samplesize1, samplesize2)
     TTE_mat = vcat(TTE1, TTE2)
     T_mat = vcat(T1, T2)
@@ -826,6 +836,8 @@ function fn_iternation_iRCT_MLE(nsim, soln1, tstatus1, VE_true1, samplesize1, N,
         nstatus_mat = vcat(nstatus_mat, nstatus3)
         tstatus_mat = vcat(tstatus_mat, tstatus3)
         VE_true_mat = vcat(VE_true_mat, VE_true3)
+        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control3 + n_infectious_treatment3)
+        n_exposed_people_mat = vcat(n_exposed_people_mat, n_exposed_control3 + n_exposed_treatment3)
         samplesize_mat = vcat(samplesize_mat, samplesize3)
         TTE_mat = vcat(TTE_mat, TTE3)
         T_mat = vcat(T_mat, T3)
