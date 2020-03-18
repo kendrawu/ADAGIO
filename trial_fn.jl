@@ -301,7 +301,7 @@ function fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_pro
         tstatus = tstatus_fn
         Gc = Gc_fn
 
-        # Compute R0 in a network
+        # Compute R0 in a network based on connectivity, without considering intervention
         if timestep1 == round(Int,intermediatetime2)
             k = sum(sum(Gc))/N # mean degree of the network
             T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact
@@ -490,11 +490,11 @@ function fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, pa
         tstatus = tstatus_fn
         Gc = Gc_fn
 
-        # Compute R0 in a network
+        # Compute R0 in a network based on connectivity, without considering intervention
         if timestep1 == round(Int,intermediatetime2)
             k = sum(sum(Gc))/N # mean degree of the network
             T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they have contact
-            R0 = T * (k^2/k - 1)
+            R0 = T * (k^2/k - 1) # Reproductive number
             println("k = ", k, ", T = ",T, ", and R0 = ",R0)
 
             global T
@@ -608,8 +608,8 @@ function fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
     VE_true_mat = vcat(VE_true1, VE_true2)
     samplesize_mat = vcat(samplesize1, samplesize2)
     TTE_mat = vcat(TTE1, TTE2)
-    T = vcat(T1, T2)
-    R0 = vcat(R01, R02)
+    T_mat = vcat(T1, T2)
+    R0_mat = vcat(R01, R02)
 
     for itern = 3:nsim
 
@@ -635,11 +635,11 @@ function fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
         VE_true_mat = vcat(VE_true_mat, VE_true3)
         samplesize_mat = vcat(samplesize_mat, samplesize3)
         TTE_mat = vcat(TTE_mat, TTE3)
-        T = vcat(T, T3)
-        R0 = vcat(R0, R03)
+        T_mat = vcat(T_mat, T3)
+        R0_mat = vcat(R0_mat, R03)
     end
 
-    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T, R0
+    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
 end
 
 # Function to enroll the contact list of a infector into the trial
@@ -738,8 +738,8 @@ function fn_iternation_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
     VE_true_mat = vcat(VE_true1, VE_true2)
     samplesize_mat = vcat(samplesize1, samplesize2)
     TTE_mat = vcat(TTE1, TTE2)
-    T = vcat(T1, T2)
-    R0 = vcat(R01, R02)
+    T_mat = vcat(T1, T2)
+    R0_mat = vcat(R01, R02)
 
     for itern = 3:nsim
         (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
@@ -764,11 +764,11 @@ function fn_iternation_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
         VE_true_mat = vcat(VE_true_mat, VE_true3)
         samplesize_mat = vcat(samplesize_mat, samplesize3)
         TTE_mat = vcat(TTE_mat, TTE3)
-        T = vcat(T, T3)
-        R0 = vcat(R0, R03)
+        T_mat = vcat(T_mat, T3)
+        R0_mat = vcat(R0_mat, R03)
     end
 
-    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T, R0
+    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
 end
 
 function fn_iternation_iRCT_MLE(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
@@ -802,8 +802,8 @@ function fn_iternation_iRCT_MLE(nsim, soln1, tstatus1, VE_true1, samplesize1, N,
     VE_true_mat = vcat(VE_true1, VE_true2)
     samplesize_mat = vcat(samplesize1, samplesize2)
     TTE_mat = vcat(TTE1, TTE2)
-    T = vcat(T1, T2)
-    R0 = vcat(R01, R02)
+    T_mat = vcat(T1, T2)
+    R0_mat = vcat(R01, R02)
 
     for itern = 3:nsim
         (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
@@ -828,11 +828,11 @@ function fn_iternation_iRCT_MLE(nsim, soln1, tstatus1, VE_true1, samplesize1, N,
         VE_true_mat = vcat(VE_true_mat, VE_true3)
         samplesize_mat = vcat(samplesize_mat, samplesize3)
         TTE_mat = vcat(TTE_mat, TTE3)
-        T = vcat(T, T3)
-        R0 = vcat(R0, R03)
+        T_mat = vcat(T_mat, T3)
+        R0_mat = vcat(R0_mat, R03)
     end
 
-    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T, R0
+    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
 end
 
 function fn_divide(soln_mat, endtime, nsim, colnum)
@@ -1272,7 +1272,14 @@ function fn_adapt_freq(method, timestep)
     return p0_selected, p1_selected
 end
 
-function fn_adapt_Bayes(itern)
+function fn_adapt_Bayes(itern, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
+
+    # Intputs
+    # intern: Number of iternations
+    # n_control: Number of people in the control group
+    # n_treatment: Number of people in the treatment group
+    # n_infected_control: Number of infectious people in the control group
+    # n_infected_treatment: Number of infectious people in the treatment group
 
     fn(p0,p1) = -sqrt(p1/p0)/((sqrt(p1/p0))+1)
 
@@ -1288,22 +1295,31 @@ function fn_adapt_Bayes(itern)
     sizehint!(element_selected3_p0, itern)
     sizehint!(element_selected3_p1, itern)
 
+    success_control = n_control - n_infectious_control
+    success_treatment = n_treatment - n_infectious_treatment
+
+    p0 = success_control/ n_control
+    p1 = success_treatment/ n_treatment
+
+    soln_truecases = fn(p0,p1)
+
     for i in 1:itern
-        p0 = rand(Uniform(), 1)[1]
-        p1 = rand(Uniform(), 1)[1]
-        while p0==0.0
-            p0 = rand(Uniform(), 1)[1]
+        p0r = rand(Uniform(), 1)[1]
+        p1r = rand(Uniform(), 1)[1]
+        while p0r==0.0
+            p0r = rand(Uniform(), 1)[1]
         end
-        while p1==0.0
-            p1 = rand(Uniform(), 1)[1]
+        while p1r==0.0
+            p1r = rand(Uniform(), 1)[1]
         end
-        soln[i] = fn(p0, p1)
-        if soln[i] == minimum(soln)
-            push!(element_selected3_p0::Array{Float64,1},p0)
-            push!(element_selected3_p1::Array{Float64,1},p1)
-            posterior = [p0, p1]
+        soln[i] = fn(p0r, p1r)
+    if soln[i] < soln_truecases
+            push!(element_selected3_p0::Array{Float64,1},p0r)
+            push!(element_selected3_p1::Array{Float64,1},p1r)
+            posterior = [p0r, p1r]
             rewardnum1 = rewardnum1 + 1
         else
+            posterior = [p0,p1]
             rewardnum0 = rewardnum0 + 1
         end
     end
