@@ -621,8 +621,8 @@ function fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, sample
         (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
         timestep_fn = endtime
-        (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        samplesize3 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
+        (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
         TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
         soln3_mat = zeros(Int, round(Int,endtime), 5)
@@ -822,8 +822,8 @@ function fn_iternation_iRCT_MLE(nsim, soln1, tstatus1, VE_true1, samplesize1, N,
         (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
         timestep_fn = endtime
-        (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        samplesize3 = fn_samplesize_truecases(n_control, n_treatment, n_infected_control, n_infected_treatment, treatment_gp, timestep_fn, alpha, power)
+        (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infected_control3, n_infected_treatment3, treatment_gp, timestep_fn, alpha, power)
         TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
         soln3_mat = zeros(Int, round(Int,endtime), 5)

@@ -153,7 +153,7 @@ if method=="iRCT_non_adaptive"
 end
 
 if method=="cRCT_non_adaptive"
-    lambda0 = 0.00011 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+    lambda0 = 0.000128 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
     par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_hhbetween_cbetween=1, tprob_hhwithin_cwithin=lambda0, tprob_hhbetween_cwithin=lambda0, tprob_hhbetween_cbetween=lambda0)
 
     (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
