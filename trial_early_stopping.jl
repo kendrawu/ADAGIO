@@ -115,7 +115,7 @@ if method=="iRCT_Bayes"
 end
 
 if method=="iRCT_non_adaptive"
-    lambda0 = 0.000128 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+    lambda0 = 0.000127 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
     par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_hhbetween_cbetween=1, tprob_hhwithin_cwithin=lambda0, tprob_hhbetween_cwithin=lambda0, tprob_hhbetween_cbetween=lambda0)
 
     (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
@@ -153,7 +153,7 @@ if method=="iRCT_non_adaptive"
 end
 
 if method=="cRCT_non_adaptive"
-    lambda0 = 0.000128 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+    lambda0 = 0.00011 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
     par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_hhbetween_cbetween=1, tprob_hhwithin_cwithin=lambda0, tprob_hhbetween_cwithin=lambda0, tprob_hhbetween_cbetween=lambda0)
 
     (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
@@ -186,7 +186,7 @@ if method=="cRCT_non_adaptive"
     end
 
     if nsim>=2
-        (soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat) = fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, trial_communitynum, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+        (soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat) = fn_iternation_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, trial_communitynum, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
     end
 #else
 #    throw(ArgumentError("Adaptive method unknown."))
@@ -197,10 +197,17 @@ end
 samplesize_median = median(samplesize_mat)
 samplesize_lowerCI = quantile!(samplesize_mat, 0.05)
 samplesize_upperCI = quantile!(samplesize_mat, 0.95)
-println("Sample size (from true cases): ", mean(filter(isfinite, samplesize_mat)), samplesize_median, samplesize_lowerCI, samplesize_upperCI)
+println("Sample size (from true cases): mean: ", mean(filter(isfinite, samplesize_mat)), ", median: ", samplesize_median, ", lowerCI: ", samplesize_lowerCI, ", upperCI: ", samplesize_upperCI)
 
-println("Average number of infectious people in the trial: ", n_infectious_control+n_infectious_treatment)
-println("Average number of exposed people in the trial: ", n_exposed_control+n_exposed_treatment)
+n_infectious_people_median = median(n_infectious_people_mat)
+n_infectious_people_lowerCI = quantile!(n_infectious_people_mat, 0.05)
+n_infectious_people_upperCI = quantile!(n_infectious_people_mat, 0.95)
+println("Average number of infectious people in the trial: mean: ", mean(filter(isfinite, n_infectious_people_mat)), ", median: ", n_infectious_people_median, ", lowerCI: ", n_infectious_people_lowerCI, ", upperCI: ", n_infectious_people_upperCI)
+
+samplesize_median = median(samplesize_mat)
+samplesize_lowerCI = quantile!(samplesize_mat, 0.05)
+samplesize_upperCI = quantile!(samplesize_mat, 0.95)
+println("Average number of exposed people in the trial: ", mean(filter(isfinite, n_exposed_people_mat))
 
 TTE_median = median(TTE_mat[:,2])
 TTE_lowerCI = quantile!(TTE_mat[:,2], 0.05)
@@ -208,7 +215,7 @@ TTE_upperCI = quantile!(TTE_mat[:,2], 0.95)
 println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat[:,2]), ", median: ", TTE_median, ", lowerCI: ", TTE_lowerCI, ", upperCI: ", TTE_upperCI)
 
 VE_median = median(VE_true_mat)
-VE_lowerCI = quantile!(VE_true_mat 0.05)
+VE_lowerCI = quantile!(VE_true_mat, 0.05)
 VE_upperCI = quantile!(VE_true_mat, 0.95)
 println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", median: ", VE_median, ", lowerCI: ", VE_lowerCI, ", upperCI: ", VE_upperCI)
 
