@@ -78,7 +78,7 @@ gamma_infectperiod_duration = rand(Gamma(par_disease[1,:infectperiod_shape],1/pa
 gamma_infectperiod_maxduration = maximum(gamma_infectperiod_duration)
 gamma_incubperiod_duration = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1000)
 gamma_incubperiod_maxduration = maximum(gamma_incubperiod_duration)
-method = "cRCT_Bayes"
+method = "iRCT_non_adaptive"
 
 # Initialization
 samplesize_truecases = zeros(nsim) # Sample size based on true cases
@@ -89,7 +89,8 @@ include("sbm_fn.jl") # load all the required functions
 include("trial_fn.jl")
 
 if method=="iRCT_non_adaptive"
-    lambda0 = 0.000128 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+    #lambda0 = 0.000128 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+    lambda0 = 0.000069
     par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_hhbetween_cbetween=1, tprob_hhwithin_cwithin=lambda0, tprob_hhbetween_cwithin=lambda0, tprob_hhbetween_cbetween=lambda0)
 
     (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
@@ -99,8 +100,8 @@ if method=="iRCT_non_adaptive"
 
     # Determine operation characteristics
     timestep_fn = endtime
-    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true1) = fn_vaccine_efficacy(tstatus1, nstatus1, timestep_fn, treatment_gp)
-    samplesize1 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
+    (n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, VE_true1) = fn_vaccine_efficacy(tstatus1, nstatus1, timestep_fn, treatment_gp)
+    samplesize1 = fn_samplesize_truecases(n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, treatment_gp, timestep_fn, alpha, power)
     TTE1 = fn_TTE(nstatus1, tstatus1, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
     if nsim==1
@@ -120,7 +121,7 @@ if method=="iRCT_non_adaptive"
     end
 
     if nsim>=2
-        (soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat) = fn_iteration_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+        (soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat) = fn_iteration_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
     end
 #else
 #    throw(ArgumentError("Adaptive method unknown."))
@@ -153,7 +154,7 @@ if method=="iRCT_Bayes"
 end
 
 if method=="cRCT_non_adaptive"
-    lambda0 = 0.00011 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+    lambda0 = 0.000069 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
     par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_hhbetween_cbetween=1, tprob_hhwithin_cwithin=lambda0, tprob_hhbetween_cwithin=lambda0, tprob_hhbetween_cbetween=lambda0)
 
     (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
@@ -186,15 +187,14 @@ if method=="cRCT_non_adaptive"
     end
 
     if nsim>=2
-        (soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat) = fn_iteration_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, trial_communitynum, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+        (soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat) = fn_iteration_cRCT_non_adpative(fn_iteration_cRCT_non_adpativensim, soln1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, trial_communitynum, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
     end
 #else
 #    throw(ArgumentError("Adaptive method unknown."))
 end
 
 if method=="cRCT_MLE"
-    #lambda0 = 0.00011 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
-    lambda0 = 0.000069
+    lambda0 = 0.000069 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
     par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_hhbetween_cbetween=1, tprob_hhwithin_cwithin=lambda0, tprob_hhbetween_cwithin=lambda0, tprob_hhbetween_cbetween=lambda0)
     timestep_fn = trial_begintime
 

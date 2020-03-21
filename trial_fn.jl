@@ -557,7 +557,8 @@ function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communit
         while length(unique(nodes_in_trial)) != enrolsize # Found a bug in sample. See duplicate elements despite replace=false.
             nodes_in_trial = sample(potential_nodes_in_trial, enrolsize, replace=false, ordered=true)
         end
-        nodes_in_treatment = sample(nodes_in_trial, ceil(Int,communitysize*prop_in_trial*allocation_ratio[2]), replace=false, ordered=true)
+        elements_draw = minimum([length(nodes_in_trial),floor(Int, communitysize*prop_in_trial*allocation_ratio[2])])
+        nodes_in_treatment = sample(nodes_in_trial, elements_draw, replace=false, ordered=true)
         nodes_in_control = setdiff(nodes_in_trial, nodes_in_treatment)
         #println("Individuals in trial = ", length(nodes_in_trial))
         #println("Individuals in treatment = ", length(nodes_in_treatment))
@@ -579,7 +580,7 @@ function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communit
     return tstatus_fn
 end
 
-function fn_iteration_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, trial_communitynum, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+function fn_iteration_cRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, trial_communitynum, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
 
     soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
     soln1_mat[:,1] = soln1[:,1]
@@ -878,7 +879,7 @@ function fn_nsim1_iternation(nsim, soln1, N, par_hh, par_community, par_prob, pa
     return soln, nstatus2, communitysize_arr2, communitynum_arr2, T, R0
 end
 
-function fn_iteration_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+function fn_iteration_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
 
     soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
     soln1_mat[:,1] = soln1[:,1]
@@ -893,8 +894,8 @@ function fn_iteration_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samples
     (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
     timestep_fn = endtime
-    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-    samplesize2 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
+    (n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, n_exposed_control2, n_exposed_treatment2, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize2 = fn_samplesize_truecases(n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, treatment_gp, timestep_fn, alpha, power)
     TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
     soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
@@ -923,8 +924,8 @@ function fn_iteration_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samples
         (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
         timestep_fn = endtime
-        (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        samplesize3 = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
+        (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
         TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
         soln3_mat = zeros(Int, round(Int,endtime), 5)
