@@ -113,6 +113,8 @@ if method=="iRCT_non_adaptive"
         soln_mat[:,5] = soln1[:,5]
         nstatus_mat = nstatus1
         tstatus_mat = tstatus1
+        n_infectious_people_mat = n_infectious_control1 + n_infectious_treatment1
+        n_exposed_people_mat = n_exposed_control1 + n_exposed_treatment1
         VE_true_mat = VE_true1
         samplesize_mat = samplesize1
         TTE_mat = TTE1
@@ -121,7 +123,7 @@ if method=="iRCT_non_adaptive"
     end
 
     if nsim>=2
-        (soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat) = fn_iteration_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+        (soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat) = fn_iteration_iRCT_non_adpative(nsim, soln1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
     end
 #else
 #    throw(ArgumentError("Adaptive method unknown."))
