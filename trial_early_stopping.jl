@@ -50,7 +50,7 @@ par_community = DataFrame(communitynum=3, communitysize_avg=650, communitysize_r
 #par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
 par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5.0, infectperiod_rate=0.8)
 
-nsim = 15 # Number of simulations
+nsim = 2 # Number of simulations
 trial_begintime = 10.0
 trial_endtime = endtime
 prop_in_trial = 0.6 # Proportion of the population/ cluster will be enrolled in the trial
@@ -78,7 +78,7 @@ gamma_infectperiod_duration = rand(Gamma(par_disease[1,:infectperiod_shape],1/pa
 gamma_infectperiod_maxduration = maximum(gamma_infectperiod_duration)
 gamma_incubperiod_duration = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1000)
 gamma_incubperiod_maxduration = maximum(gamma_incubperiod_duration)
-method = "iRCT_MLE"
+method = "iRCT_Bayes"
 
 # Initialization
 samplesize_truecases = zeros(nsim) # Sample size based on true cases

@@ -346,7 +346,9 @@ function fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_eff
         while length(unique(nodes_in_trial)) != enrolsize # Found a bug in sample. See duplicate elements despite replace=false.
             nodes_in_trial = sample(potential_nodes_notrial_index, enrolsize, replace=false, ordered=true)
         end
-        elements_draw = minimum([length(nodes_in_trial), floor(Int, length(potential_nodes_notrial_index)*prop_in_trial*allocation_ratio[2])])
+        n_treatment_enroll = floor(Int, length(potential_nodes_notrial_index)*prop_in_trial*allocation_ratio[2])
+        println("n_treatment_enroll: ", n_treatment_enroll)
+        elements_draw = minimum([length(nodes_in_trial), n_treatment_enroll])
         nodes_in_treatment = sample(nodes_in_trial, elements_draw, replace=false, ordered=true)
         nodes_in_control = setdiff(nodes_in_trial, nodes_in_treatment)
         #println("Individuals in trial = ", length(nodes_in_trial))
@@ -1110,7 +1112,7 @@ function fn_iteration_iRCT_Bayes(nsim, soln1, nstatus1, tstatus1, VE_true1, samp
         R0_mat = vcat(R0_mat, R03)
     end
 
-    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
+    return soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
 end
 
 function fn_divide(soln_mat, endtime, nsim, colnum)
