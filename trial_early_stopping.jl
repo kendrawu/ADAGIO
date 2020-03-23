@@ -78,7 +78,7 @@ gamma_infectperiod_duration = rand(Gamma(par_disease[1,:infectperiod_shape],1/pa
 gamma_infectperiod_maxduration = maximum(gamma_infectperiod_duration)
 gamma_incubperiod_duration = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1000)
 gamma_incubperiod_maxduration = maximum(gamma_incubperiod_duration)
-method = "iRCT_Bayes"
+method = "iRCT_MLE"
 
 # Initialization
 samplesize_truecases = zeros(nsim) # Sample size based on true cases

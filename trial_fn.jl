@@ -1009,7 +1009,7 @@ function fn_iteration_iRCT_MLE(nsim, soln1, nstatuts1, tstatus1, VE_true1, sampl
 
         timestep_fn = endtime
         (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infected_control3, n_infected_treatment3, treatment_gp, timestep_fn, alpha, power)
+        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
         TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
         soln3_mat = zeros(Int, round(Int,endtime), 5)
@@ -1082,6 +1082,7 @@ function fn_iteration_iRCT_Bayes(nsim, soln1, nstatus1, tstatus1, VE_true1, samp
         timestep_fn = trial_begintime
         (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
         (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
+        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
         (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
         allocation_ratio = fn_adapt_Bayes(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
         println("New optimum allocation (Bayes): ", allocation_ratio)
@@ -1092,7 +1093,7 @@ function fn_iteration_iRCT_Bayes(nsim, soln1, nstatus1, tstatus1, VE_true1, samp
 
         timestep_fn = endtime
         (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infected_control3, n_infected_treatment3, treatment_gp, timestep_fn, alpha, power)
+        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
         TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
         soln3_mat = zeros(Int, round(Int,endtime), 5)
@@ -1472,8 +1473,8 @@ function fn_adapt_freq_MLE(method, n_control, n_treatment, n_infectious_control,
     # method: Method to use for frequentist adaptive
     # n_control: Number of people in the control group
     # n_treatment: Number of people in the treatment group
-    # n_infected_control: Number of infectious people in the control group
-    # n_infected_treatment: Number of infectious people in the treatment group
+    # n_infectious_control: Number of infectious people in the control group
+    # n_infectious_treatment: Number of infectious people in the treatment group
 
     # Output:
     # optimum_allocation: Optimum randomization allocation ratio
@@ -1571,8 +1572,8 @@ function fn_adapt_Bayes(itern, n_control, n_treatment, n_infectious_control, n_i
     # intern: Number of iternations
     # n_control: Number of people in the control group
     # n_treatment: Number of people in the treatment group
-    # n_infected_control: Number of infectious people in the control group
-    # n_infected_treatment: Number of infectious people in the treatment group
+    # n_infectious_control: Number of infectious people in the control group
+    # n_infectious_treatment: Number of infectious people in the treatment group
 
     fn(p0,p1) = -sqrt(p1/p0)/((sqrt(p1/p0))+1)
 
