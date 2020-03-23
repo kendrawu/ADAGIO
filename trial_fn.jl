@@ -368,6 +368,316 @@ function fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_eff
     #return tstatus_fn
 end
 
+function fn_iteration_iRCT_non_adpative(nsim, soln1, nstatuts1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+
+    soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
+    soln1_mat[:,1] = soln1[:,1]
+    soln1_mat[:,2] = soln1[:,2]
+    soln1_mat[:,3] = soln1[:,3]
+    soln1_mat[:,4] = soln1[:,4]
+    soln1_mat[:,5] = soln1[:,5]
+
+    timestep_fn = trial_begintime
+    (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+    (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
+    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
+    (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
+
+    timestep_fn = endtime
+    (n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, n_exposed_control2, n_exposed_treatment2, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize2 = fn_samplesize_truecases(n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, treatment_gp, timestep_fn, alpha, power)
+    TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+
+    soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
+    soln2_mat[:,1] = soln2[:,1]
+    soln2_mat[:,2] = soln2[:,2]
+    soln2_mat[:,3] = soln2[:,3]
+    soln2_mat[:,4] = soln2[:,4]
+    soln2_mat[:,5] = soln2[:,5]
+    soln_mat = vcat(soln1_mat, soln2_mat)
+    nstatus_mat = vcat(nstatus1, nstatus2)
+    tstatus_mat = vcat(tstatus1, tstatus2)
+    n_infectious_people_mat = vcat(n_infectious_control1 + n_infectious_treatment1, n_infectious_control2 + n_infectious_treatment2)
+    n_exposed_people_mat = vcat(n_exposed_control1 + n_exposed_treatment1, n_exposed_control2 + n_exposed_treatment2)
+    VE_true_mat = vcat(VE_true1, VE_true2)
+    samplesize_mat = vcat(samplesize1, samplesize2)
+    TTE_mat = vcat(TTE1, TTE2)
+    T_mat = vcat(T1, T2)
+    R0_mat = vcat(R01, R02)
+
+    for itern = 3:nsim
+
+        timestep_fn = trial_begintime
+        println("Iteration number: ", itern)
+        (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+        (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
+        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
+        (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
+
+        timestep_fn = endtime
+        (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
+        TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+
+        soln3_mat = zeros(Int, round(Int,endtime), 5)
+        soln3_mat[:,1] = soln3[:,1]
+        soln3_mat[:,2] = soln3[:,2]
+        soln3_mat[:,3] = soln3[:,3]
+        soln3_mat[:,4] = soln3[:,4]
+        soln3_mat[:,5] = soln3[:,5]
+        soln_mat = vcat(soln_mat, soln3_mat)
+        nstatus_mat = vcat(nstatus_mat, nstatus3)
+        tstatus_mat = vcat(tstatus_mat, tstatus3)
+        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control3 + n_infectious_treatment3)
+        n_exposed_people_mat = vcat(n_exposed_people_mat, n_exposed_control3 + n_exposed_treatment3)
+        VE_true_mat = vcat(VE_true_mat, VE_true3)
+        samplesize_mat = vcat(samplesize_mat, samplesize3)
+        TTE_mat = vcat(TTE_mat, TTE3)
+        T_mat = vcat(T_mat, T3)
+        R0_mat = vcat(R0_mat, R03)
+    end
+
+    return soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
+end
+
+function fn_iteration_iRCT_MLE(nsim, soln1, nstatuts1, tstatus1, VE_true1, samplesize1, n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+
+    soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
+    soln1_mat[:,1] = soln1[:,1]
+    soln1_mat[:,2] = soln1[:,2]
+    soln1_mat[:,3] = soln1[:,3]
+    soln1_mat[:,4] = soln1[:,4]
+    soln1_mat[:,5] = soln1[:,5]
+
+    timestep_fn = trial_begintime
+    (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+    (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
+    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    allocation_ratio = fn_adapt_MLE(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
+    println("New optimum allocation (MLE): ", allocation_ratio)
+    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+    (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
+
+    timestep_fn = endtime
+    (n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, n_exposed_control2, n_exposed_treatment2, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize2 = fn_samplesize_truecases(n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, treatment_gp, timestep_fn, alpha, power)
+    TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+
+    soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
+    soln2_mat[:,1] = soln2[:,1]
+    soln2_mat[:,2] = soln2[:,2]
+    soln2_mat[:,3] = soln2[:,3]
+    soln2_mat[:,4] = soln2[:,4]
+    soln2_mat[:,5] = soln2[:,5]
+    soln_mat = vcat(soln1_mat, soln2_mat)
+    nstatus_mat = vcat(nstatus1, nstatus2)
+    tstatus_mat = vcat(tstatus1, tstatus2)
+    VE_true_mat = vcat(VE_true1, VE_true2)
+    n_infectious_people_mat = vcat(n_infectious_control1 + n_infectious_treatment1, n_infectious_control2 + n_infectious_treatment2)
+    n_exposed_people_mat = vcat(n_exposed_control1 + n_exposed_treatment1, n_exposed_control2 + n_exposed_treatment2)
+    samplesize_mat = vcat(samplesize1, samplesize2)
+    TTE_mat = vcat(TTE1, TTE2)
+    T_mat = vcat(T1, T2)
+    R0_mat = vcat(R01, R02)
+
+    for itern = 3:nsim
+
+        println("Iteration number: ", itern)
+        timestep_fn = trial_begintime
+        (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+        (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
+        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+        (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        allocation_ratio = fn_adapt_MLE(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
+        println("New optimum allocation (MLE): ", allocation_ratio)
+        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+        (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
+
+        timestep_fn = endtime
+        (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
+        TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+
+        soln3_mat = zeros(Int, round(Int,endtime), 5)
+        soln3_mat[:,1] = soln3[:,1]
+        soln3_mat[:,2] = soln3[:,2]
+        soln3_mat[:,3] = soln3[:,3]
+        soln3_mat[:,4] = soln3[:,4]
+        soln3_mat[:,5] = soln3[:,5]
+        soln_mat = vcat(soln_mat, soln3_mat)
+        nstatus_mat = vcat(nstatus_mat, nstatus3)
+        tstatus_mat = vcat(tstatus_mat, tstatus3)
+        VE_true_mat = vcat(VE_true_mat, VE_true3)
+        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control3 + n_infectious_treatment3)
+        n_exposed_people_mat = vcat(n_exposed_people_mat, n_exposed_control3 + n_exposed_treatment3)
+        samplesize_mat = vcat(samplesize_mat, samplesize3)
+        TTE_mat = vcat(TTE_mat, TTE3)
+        T_mat = vcat(T_mat, T3)
+        R0_mat = vcat(R0_mat, R03)
+    end
+
+    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
+end
+
+function fn_iteration_iRCT_Bayes(nsim, soln1, nstatus1, tstatus1, VE_true1, samplesize1, n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+
+    soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
+    soln1_mat[:,1] = soln1[:,1]
+    soln1_mat[:,2] = soln1[:,2]
+    soln1_mat[:,3] = soln1[:,3]
+    soln1_mat[:,4] = soln1[:,4]
+    soln1_mat[:,5] = soln1[:,5]
+
+    timestep_fn = trial_begintime
+    (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+    (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
+    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
+    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    allocation_ratio = fn_adapt_Bayes(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
+    println("New optimum allocation (Bayes): ", allocation_ratio)
+    #println(element_selected3_p0)
+    #println(element_selected3_p1)
+    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
+    (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
+
+    timestep_fn = endtime
+    (n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, n_exposed_control2, n_exposed_treatment2, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize2 = fn_samplesize_truecases(n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, treatment_gp, timestep_fn, alpha, power)
+    TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+
+    soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
+    soln2_mat[:,1] = soln2[:,1]
+    soln2_mat[:,2] = soln2[:,2]
+    soln2_mat[:,3] = soln2[:,3]
+    soln2_mat[:,4] = soln2[:,4]
+    soln2_mat[:,5] = soln2[:,5]
+    soln_mat = vcat(soln1_mat, soln2_mat)
+    nstatus_mat = vcat(nstatus1, nstatus2)
+    tstatus_mat = vcat(tstatus1, tstatus2)
+    VE_true_mat = vcat(VE_true1, VE_true2)
+    n_infectious_people_mat = vcat(n_infectious_control1 + n_infectious_treatment1, n_infectious_control2 + n_infectious_treatment2)
+    n_exposed_people_mat = vcat(n_exposed_control1 + n_exposed_treatment1, n_exposed_control2 + n_exposed_treatment2)
+    samplesize_mat = vcat(samplesize1, samplesize2)
+    TTE_mat = vcat(TTE1, TTE2)
+    T_mat = vcat(T1, T2)
+    R0_mat = vcat(R01, R02)
+
+    for itern = 3:nsim
+
+        println("Iteration number: ", itern)
+        timestep_fn = trial_begintime
+        (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
+        (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
+        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
+        (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        allocation_ratio = fn_adapt_Bayes(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
+        println("New optimum allocation (Bayes): ", allocation_ratio)
+        #println(element_selected3_p0)
+        #println(element_selected3_p1)
+        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
+        (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
+
+        timestep_fn = endtime
+        (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
+        TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+
+        soln3_mat = zeros(Int, round(Int,endtime), 5)
+        soln3_mat[:,1] = soln3[:,1]
+        soln3_mat[:,2] = soln3[:,2]
+        soln3_mat[:,3] = soln3[:,3]
+        soln3_mat[:,4] = soln3[:,4]
+        soln3_mat[:,5] = soln3[:,5]
+        soln_mat = vcat(soln_mat, soln3_mat)
+        nstatus_mat = vcat(nstatus_mat, nstatus3)
+        tstatus_mat = vcat(tstatus_mat, tstatus3)
+        VE_true_mat = vcat(VE_true_mat, VE_true3)
+        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control3 + n_infectious_treatment3)
+        n_exposed_people_mat = vcat(n_exposed_people_mat, n_exposed_control3 + n_exposed_treatment3)
+        samplesize_mat = vcat(samplesize_mat, samplesize3)
+        TTE_mat = vcat(TTE_mat, TTE3)
+        T_mat = vcat(T_mat, T3)
+        R0_mat = vcat(R0_mat, R03)
+    end
+
+    return soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
+end
+
+# Function to enroll the population into trial by community cluster(s)
+function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+
+    # Inputs:
+    # N: Total size of population
+    # par_disease: User-defined parameters of the disease
+    # tstatus: The trial statuses of each individual in the population
+    # communitysize_arr: Sizes of each community
+    # communitynum_arr: Holds the community number that each individual in the population belongs
+    # trial_communitynum: The cluster numbers that are in the trial
+    # nstatus: The health statuses of each individual in the population
+    # prop_in_trial: Proportion of a cluster will be enrolled into the trial
+    # allocation_ratio: Allocation ratio of the randomization trial
+    # vac_efficacy: Vaccine efficacy of vaccine candidate(s)
+    # protection_threshold: A value to determine if a vaccinated person will be infected if exposed
+
+    # Output:
+    # tstatus_fn: The trial statuses of each individual in the population
+
+    # Initialization
+    potential_nodes_in_trial_index = Int8[]
+    sizehint!(potential_nodes_in_trial_index, N)
+    potential_nodes_in_trial = Int16[]
+    sizehint!(potential_nodes_in_trial, N)
+
+    # Set local variable for this function
+    tstatus_fn = tstatus
+
+    # Combine tstatus and communitynum_arr for info searching
+    tstatus_fn = hcat(tstatus, communitynum_arr)
+
+    for index1 in 1:length(trial_communitynum)
+        communitysize = communitysize_arr[trial_communitynum[index1]] # Obtain size of community selected for trial
+        enrolsize = ceil(Int,communitysize*prop_in_trial) # Size of enrollment in the community
+        #println("Enrollment size = ", enrolsize)
+        #println("index1 = ", index1)
+        potential_nodes_in_trial_index = findall(x->x==index1, tstatus_fn[:,3]) # Find everyone who are in this community
+
+        if (size(potential_nodes_in_trial_index)[1])>0
+            potential_nodes_in_trial = Int16[]
+            for index2 in 1:length(potential_nodes_in_trial_index)
+                potential_nodes_in_trial_index_local = potential_nodes_in_trial_index
+                push!(potential_nodes_in_trial::Array{Int16,1},potential_nodes_in_trial_index_local[CartesianIndex(index2,1)][1]) # Extract node names from potential_nodes_in_trial_index
+            end
+        end
+
+        # Select those who will be enrolled into the trial (assume two arms, for now)
+        nodes_in_trial = sample(potential_nodes_in_trial, enrolsize, replace=false, ordered=true)
+        while length(unique(nodes_in_trial)) != enrolsize # Found a bug in sample. See duplicate elements despite replace=false.
+            nodes_in_trial = sample(potential_nodes_in_trial, enrolsize, replace=false, ordered=true)
+        end
+        elements_draw = minimum([length(nodes_in_trial),floor(Int, communitysize*prop_in_trial*allocation_ratio[2])])
+        nodes_in_treatment = sample(nodes_in_trial, elements_draw, replace=false, ordered=true)
+        nodes_in_control = setdiff(nodes_in_trial, nodes_in_treatment)
+        #println("Individuals in trial = ", length(nodes_in_trial))
+        #println("Individuals in treatment = ", length(nodes_in_treatment))
+        #println("Individuals in control = ", length(nodes_in_control))
+
+        # Assign trial statuses and update tstatus_fn
+        for index3 in 1:length(nodes_in_treatment)
+            tstatus_fn[nodes_in_treatment[index3],2] = 1 # In treatment group
+        end
+        if length(nodes_in_control)>0
+            for index4 in 1:length(nodes_in_control)
+                tstatus_fn[nodes_in_control[index4],2] = 0 # In control group
+            end
+        end
+    end
+
+    tstatus_fn = tstatus_fn[:,1:2] # Only keep the first 2 columns
+
+    return tstatus_fn
+end
+
 # Function to generate imported cases and distribute them into a specific clusters
 function fn_importcases_cRCT(par_disease, importcasenum_timeseries, nstatus, trial_communitynum, communitynum_arr, timestep)
 
@@ -510,80 +820,6 @@ function fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, pa
     return nstatus, tstatus, sbm_sol, T, R0
 end
 
-# Function to enroll the population into trial by community cluster(s)
-function fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
-
-    # Inputs:
-    # N: Total size of population
-    # par_disease: User-defined parameters of the disease
-    # tstatus: The trial statuses of each individual in the population
-    # communitysize_arr: Sizes of each community
-    # communitynum_arr: Holds the community number that each individual in the population belongs
-    # trial_communitynum: The cluster numbers that are in the trial
-    # nstatus: The health statuses of each individual in the population
-    # prop_in_trial: Proportion of a cluster will be enrolled into the trial
-    # allocation_ratio: Allocation ratio of the randomization trial
-    # vac_efficacy: Vaccine efficacy of vaccine candidate(s)
-    # protection_threshold: A value to determine if a vaccinated person will be infected if exposed
-
-    # Output:
-    # tstatus_fn: The trial statuses of each individual in the population
-
-    # Initialization
-    potential_nodes_in_trial_index = Int8[]
-    sizehint!(potential_nodes_in_trial_index, N)
-    potential_nodes_in_trial = Int16[]
-    sizehint!(potential_nodes_in_trial, N)
-
-    # Set local variable for this function
-    tstatus_fn = tstatus
-
-    # Combine tstatus and communitynum_arr for info searching
-    tstatus_fn = hcat(tstatus, communitynum_arr)
-
-    for index1 in 1:length(trial_communitynum)
-        communitysize = communitysize_arr[trial_communitynum[index1]] # Obtain size of community selected for trial
-        enrolsize = ceil(Int,communitysize*prop_in_trial) # Size of enrollment in the community
-        #println("Enrollment size = ", enrolsize)
-        #println("index1 = ", index1)
-        potential_nodes_in_trial_index = findall(x->x==index1, tstatus_fn[:,3]) # Find everyone who are in this community
-
-        if (size(potential_nodes_in_trial_index)[1])>0
-            potential_nodes_in_trial = Int16[]
-            for index2 in 1:length(potential_nodes_in_trial_index)
-                potential_nodes_in_trial_index_local = potential_nodes_in_trial_index
-                push!(potential_nodes_in_trial::Array{Int16,1},potential_nodes_in_trial_index_local[CartesianIndex(index2,1)][1]) # Extract node names from potential_nodes_in_trial_index
-            end
-        end
-
-        # Select those who will be enrolled into the trial (assume two arms, for now)
-        nodes_in_trial = sample(potential_nodes_in_trial, enrolsize, replace=false, ordered=true)
-        while length(unique(nodes_in_trial)) != enrolsize # Found a bug in sample. See duplicate elements despite replace=false.
-            nodes_in_trial = sample(potential_nodes_in_trial, enrolsize, replace=false, ordered=true)
-        end
-        elements_draw = minimum([length(nodes_in_trial),floor(Int, communitysize*prop_in_trial*allocation_ratio[2])])
-        nodes_in_treatment = sample(nodes_in_trial, elements_draw, replace=false, ordered=true)
-        nodes_in_control = setdiff(nodes_in_trial, nodes_in_treatment)
-        #println("Individuals in trial = ", length(nodes_in_trial))
-        #println("Individuals in treatment = ", length(nodes_in_treatment))
-        #println("Individuals in control = ", length(nodes_in_control))
-
-        # Assign trial statuses and update tstatus_fn
-        for index3 in 1:length(nodes_in_treatment)
-            tstatus_fn[nodes_in_treatment[index3],2] = 1 # In treatment group
-        end
-        if length(nodes_in_control)>0
-            for index4 in 1:length(nodes_in_control)
-                tstatus_fn[nodes_in_control[index4],2] = 0 # In control group
-            end
-        end
-    end
-
-    tstatus_fn = tstatus_fn[:,1:2] # Only keep the first 2 columns
-
-    return tstatus_fn
-end
-
 function fn_iteration_cRCT_non_adpative(nsim, soln1, nstatus1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, trial_communitynum, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
 
     soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
@@ -671,7 +907,7 @@ function fn_iteration_cRCT_MLE(nsim, soln1, nstatus1, tstatus1, VE_true1, sample
     tstatus = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
     (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true1) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
 
-    allocation_ratio = fn_adapt_freq_MLE(method, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
+    allocation_ratio = fn_adapt_MLE(method, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
     println("New allocation ratio (MLE): ", allocation_ratio)
     tstatus = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
     (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
@@ -707,7 +943,7 @@ function fn_iteration_cRCT_MLE(nsim, soln1, nstatus1, tstatus1, VE_true1, sample
         tstatus = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
         (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true1) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
 
-        allocation_ratio = fn_adapt_freq_MLE(method, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
+        allocation_ratio = fn_adapt_MLE(method, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
         println("New allocation ratio (MLE): ", allocation_ratio)
         tstatus = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
         (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
@@ -883,238 +1119,6 @@ function fn_nsim1_iternation(nsim, soln1, N, par_hh, par_community, par_prob, pa
     end
 
     return soln, nstatus2, communitysize_arr2, communitynum_arr2, T, R0
-end
-
-function fn_iteration_iRCT_non_adpative(nsim, soln1, nstatuts1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
-
-    soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
-    soln1_mat[:,1] = soln1[:,1]
-    soln1_mat[:,2] = soln1[:,2]
-    soln1_mat[:,3] = soln1[:,3]
-    soln1_mat[:,4] = soln1[:,4]
-    soln1_mat[:,5] = soln1[:,5]
-
-    timestep_fn = trial_begintime
-    (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
-    (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
-    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
-    (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
-
-    timestep_fn = endtime
-    (n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, n_exposed_control2, n_exposed_treatment2, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-    samplesize2 = fn_samplesize_truecases(n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, treatment_gp, timestep_fn, alpha, power)
-    TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
-
-    soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
-    soln2_mat[:,1] = soln2[:,1]
-    soln2_mat[:,2] = soln2[:,2]
-    soln2_mat[:,3] = soln2[:,3]
-    soln2_mat[:,4] = soln2[:,4]
-    soln2_mat[:,5] = soln2[:,5]
-    soln_mat = vcat(soln1_mat, soln2_mat)
-    nstatus_mat = vcat(nstatus1, nstatus2)
-    tstatus_mat = vcat(tstatus1, tstatus2)
-    n_infectious_people_mat = vcat(n_infectious_control1 + n_infectious_treatment1, n_infectious_control2 + n_infectious_treatment2)
-    n_exposed_people_mat = vcat(n_exposed_control1 + n_exposed_treatment1, n_exposed_control2 + n_exposed_treatment2)
-    VE_true_mat = vcat(VE_true1, VE_true2)
-    samplesize_mat = vcat(samplesize1, samplesize2)
-    TTE_mat = vcat(TTE1, TTE2)
-    T_mat = vcat(T1, T2)
-    R0_mat = vcat(R01, R02)
-
-    for itern = 3:nsim
-
-        timestep_fn = trial_begintime
-        println("Iteration number: ", itern)
-        (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
-        (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
-        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
-        (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
-
-        timestep_fn = endtime
-        (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
-        TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
-
-        soln3_mat = zeros(Int, round(Int,endtime), 5)
-        soln3_mat[:,1] = soln3[:,1]
-        soln3_mat[:,2] = soln3[:,2]
-        soln3_mat[:,3] = soln3[:,3]
-        soln3_mat[:,4] = soln3[:,4]
-        soln3_mat[:,5] = soln3[:,5]
-        soln_mat = vcat(soln_mat, soln3_mat)
-        nstatus_mat = vcat(nstatus_mat, nstatus3)
-        tstatus_mat = vcat(tstatus_mat, tstatus3)
-        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control3 + n_infectious_treatment3)
-        n_exposed_people_mat = vcat(n_exposed_people_mat, n_exposed_control3 + n_exposed_treatment3)
-        VE_true_mat = vcat(VE_true_mat, VE_true3)
-        samplesize_mat = vcat(samplesize_mat, samplesize3)
-        TTE_mat = vcat(TTE_mat, TTE3)
-        T_mat = vcat(T_mat, T3)
-        R0_mat = vcat(R0_mat, R03)
-    end
-
-    return soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
-end
-
-function fn_iteration_iRCT_MLE(nsim, soln1, nstatuts1, tstatus1, VE_true1, samplesize1, n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
-
-    soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
-    soln1_mat[:,1] = soln1[:,1]
-    soln1_mat[:,2] = soln1[:,2]
-    soln1_mat[:,3] = soln1[:,3]
-    soln1_mat[:,4] = soln1[:,4]
-    soln1_mat[:,5] = soln1[:,5]
-
-    timestep_fn = trial_begintime
-    (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
-    (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
-    allocation_ratio = fn_adapt_Bayes(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
-    println("New optimum allocation (Bayes): ", allocation_ratio)
-    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
-    (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel_iRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
-
-    timestep_fn = endtime
-    (n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, n_exposed_control2, n_exposed_treatment2, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-    samplesize2 = fn_samplesize_truecases(n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, treatment_gp, timestep_fn, alpha, power)
-    TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
-
-    soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
-    soln2_mat[:,1] = soln2[:,1]
-    soln2_mat[:,2] = soln2[:,2]
-    soln2_mat[:,3] = soln2[:,3]
-    soln2_mat[:,4] = soln2[:,4]
-    soln2_mat[:,5] = soln2[:,5]
-    soln_mat = vcat(soln1_mat, soln2_mat)
-    nstatus_mat = vcat(nstatus1, nstatus2)
-    tstatus_mat = vcat(tstatus1, tstatus2)
-    VE_true_mat = vcat(VE_true1, VE_true2)
-    n_infectious_people_mat = vcat(n_infectious_control1 + n_infectious_treatment1, n_infectious_control2 + n_infectious_treatment2)
-    n_exposed_people_mat = vcat(n_exposed_control1 + n_exposed_treatment1, n_exposed_control2 + n_exposed_treatment2)
-    samplesize_mat = vcat(samplesize1, samplesize2)
-    TTE_mat = vcat(TTE1, TTE2)
-    T_mat = vcat(T1, T2)
-    R0_mat = vcat(R01, R02)
-
-    for itern = 3:nsim
-
-        println("Iteration number: ", itern)
-        timestep_fn = trial_begintime
-        (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
-        (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
-        allocation_ratio = fn_adapt_Bayes(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
-        println("New optimum allocation (Bayes): ", allocation_ratio)
-        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
-        (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel_iRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
-
-        timestep_fn = endtime
-        (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
-        TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
-
-        soln3_mat = zeros(Int, round(Int,endtime), 5)
-        soln3_mat[:,1] = soln3[:,1]
-        soln3_mat[:,2] = soln3[:,2]
-        soln3_mat[:,3] = soln3[:,3]
-        soln3_mat[:,4] = soln3[:,4]
-        soln3_mat[:,5] = soln3[:,5]
-        soln_mat = vcat(soln_mat, soln3_mat)
-        nstatus_mat = vcat(nstatus_mat, nstatus3)
-        tstatus_mat = vcat(tstatus_mat, tstatus3)
-        VE_true_mat = vcat(VE_true_mat, VE_true3)
-        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control3 + n_infectious_treatment3)
-        n_exposed_people_mat = vcat(n_exposed_people_mat, n_exposed_control3 + n_exposed_treatment3)
-        samplesize_mat = vcat(samplesize_mat, samplesize3)
-        TTE_mat = vcat(TTE_mat, TTE3)
-        T_mat = vcat(T_mat, T3)
-        R0_mat = vcat(R0_mat, R03)
-    end
-
-    return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
-end
-
-function fn_iteration_iRCT_Bayes(nsim, soln1, nstatus1, tstatus1, VE_true1, samplesize1, n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
-
-    soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
-    soln1_mat[:,1] = soln1[:,1]
-    soln1_mat[:,2] = soln1[:,2]
-    soln1_mat[:,3] = soln1[:,3]
-    soln1_mat[:,4] = soln1[:,4]
-    soln1_mat[:,5] = soln1[:,5]
-
-    timestep_fn = trial_begintime
-    (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
-    (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
-    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
-    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-    allocation_ratio = fn_adapt_Bayes(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
-    println("New optimum allocation (Bayes): ", allocation_ratio)
-    #println(element_selected3_p0)
-    #println(element_selected3_p1)
-    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
-    (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
-
-    timestep_fn = endtime
-    (n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, n_exposed_control2, n_exposed_treatment2, VE_true2) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-    samplesize2 = fn_samplesize_truecases(n_control2, n_treatment2, n_infectious_control2, n_infectious_treatment2, treatment_gp, timestep_fn, alpha, power)
-    TTE2 = fn_TTE(nstatus2, tstatus2, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
-
-    soln2_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
-    soln2_mat[:,1] = soln2[:,1]
-    soln2_mat[:,2] = soln2[:,2]
-    soln2_mat[:,3] = soln2[:,3]
-    soln2_mat[:,4] = soln2[:,4]
-    soln2_mat[:,5] = soln2[:,5]
-    soln_mat = vcat(soln1_mat, soln2_mat)
-    nstatus_mat = vcat(nstatus1, nstatus2)
-    tstatus_mat = vcat(tstatus1, tstatus2)
-    VE_true_mat = vcat(VE_true1, VE_true2)
-    n_infectious_people_mat = vcat(n_infectious_control1 + n_infectious_treatment1, n_infectious_control2 + n_infectious_treatment2)
-    n_exposed_people_mat = vcat(n_exposed_control1 + n_exposed_treatment1, n_exposed_control2 + n_exposed_treatment2)
-    samplesize_mat = vcat(samplesize1, samplesize2)
-    TTE_mat = vcat(TTE1, TTE2)
-    T_mat = vcat(T1, T2)
-    R0_mat = vcat(R01, R02)
-
-    for itern = 3:nsim
-
-        println("Iteration number: ", itern)
-        timestep_fn = trial_begintime
-        (nstatus, tstatus, sbm_sol, hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc) = fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
-        (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
-        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
-        (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        allocation_ratio = fn_adapt_Bayes(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
-        println("New optimum allocation (Bayes): ", allocation_ratio)
-        #println(element_selected3_p0)
-        #println(element_selected3_p1)
-        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_efficacy, protection_threshold)
-        (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
-
-        timestep_fn = endtime
-        (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
-        samplesize3 = fn_samplesize_truecases(n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, treatment_gp, timestep_fn, alpha, power)
-        TTE3 = fn_TTE(nstatus3, tstatus3, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
-
-        soln3_mat = zeros(Int, round(Int,endtime), 5)
-        soln3_mat[:,1] = soln3[:,1]
-        soln3_mat[:,2] = soln3[:,2]
-        soln3_mat[:,3] = soln3[:,3]
-        soln3_mat[:,4] = soln3[:,4]
-        soln3_mat[:,5] = soln3[:,5]
-        soln_mat = vcat(soln_mat, soln3_mat)
-        nstatus_mat = vcat(nstatus_mat, nstatus3)
-        tstatus_mat = vcat(tstatus_mat, tstatus3)
-        VE_true_mat = vcat(VE_true_mat, VE_true3)
-        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control3 + n_infectious_treatment3)
-        n_exposed_people_mat = vcat(n_exposed_people_mat, n_exposed_control3 + n_exposed_treatment3)
-        samplesize_mat = vcat(samplesize_mat, samplesize3)
-        TTE_mat = vcat(TTE_mat, TTE3)
-        T_mat = vcat(T_mat, T3)
-        R0_mat = vcat(R0_mat, R03)
-    end
-
-    return soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
 end
 
 function fn_divide(soln_mat, endtime, nsim, colnum)
@@ -1465,7 +1469,7 @@ function fn_testStat(tstatus, sigma, allocation_ratio, J, alpha, power, delta, e
     return samplesize_est, Z, decision
 end
 
-function fn_adapt_freq_MLE(method, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
+function fn_adapt_MLE(method, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
 
     # The allocation_prob is of treatment arm relative to control group
 
