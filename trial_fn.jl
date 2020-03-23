@@ -346,13 +346,13 @@ function fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_eff
         while length(unique(nodes_in_trial)) != enrolsize # Found a bug in sample. See duplicate elements despite replace=false.
             nodes_in_trial = sample(potential_nodes_notrial_index, enrolsize, replace=false, ordered=true)
         end
-        n_treatment_enroll = floor(Int, length(potential_nodes_notrial_index)*prop_in_trial*allocation_ratio[2])
+        n_treatment_enroll = floor(Int, enrolsize*allocation_ratio[2])
         println("n_treatment_enroll: ", n_treatment_enroll)
         elements_draw = minimum([length(nodes_in_trial), n_treatment_enroll])
         nodes_in_treatment = sample(nodes_in_trial, elements_draw, replace=false, ordered=true)
         nodes_in_control = setdiff(nodes_in_trial, nodes_in_treatment)
         #println("Individuals in trial = ", length(nodes_in_trial))
-        #println("Individuals in treatment = ", length(nodes_in_treatment))
+        println("Number of individuals in treatment = ", length(nodes_in_treatment))
         #println("Individuals in control = ", length(nodes_in_control))
 
         # Assign trial statuses and update tstatus_fn
@@ -365,6 +365,7 @@ function fn_trialsetup_iRCT(N, tstatus, prop_in_trial, allocation_ratio, vac_eff
     end
 
     return tstatus_fn, nodes_in_control, nodes_in_treatment
+    #return tstatus_fn
 end
 
 # Function to generate imported cases and distribute them into a specific clusters
@@ -970,7 +971,7 @@ function fn_iteration_iRCT_MLE(nsim, soln1, nstatuts1, tstatus1, VE_true1, sampl
     (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
     allocation_ratio = fn_adapt_Bayes(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
     println("New optimum allocation (Bayes): ", allocation_ratio)
-    tstatus = fn_trialsetup_iRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+    (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
     (nstatus2, tstatus2, soln2, T2, R02) = fn_transmodel_iRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
     timestep_fn = endtime
@@ -1003,8 +1004,8 @@ function fn_iteration_iRCT_MLE(nsim, soln1, nstatuts1, tstatus1, VE_true1, sampl
         (nstatus, tstatus, sbm_sol, T, R0) = fn_transmodel(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, begintime+1, trial_begintime, endtime)
         allocation_ratio = fn_adapt_Bayes(nsim, n_control, n_treatment, n_infectious_control, n_infectious_treatment)
         println("New optimum allocation (Bayes): ", allocation_ratio)
-        tstatus = fn_trialsetup_cRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
-        (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel_cRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
+        (tstatus, nodes_in_control, nodes_in_treatment) = fn_trialsetup_iRCT(N, par_disease, tstatus, communitysize_arr, communitynum_arr, trial_communitynum, nstatus, allocation_ratio, vac_efficacy, protection_threshold)
+        (nstatus3, tstatus3, soln3, T3, R03) = fn_transmodel_iRCT(nstatus, tstatus, sbm_sol, par_hh, par_community, par_prob, par_disease, hhnum_arr, trial_communitynum, communitysize_arr, communitynum_arr, importcasenum_timeseries, Gc, trial_begintime+1, endtime, endtime)
 
         timestep_fn = endtime
         (n_control3, n_treatment3, n_infectious_control3, n_infectious_treatment3, n_exposed_control3, n_exposed_treatment3, VE_true3) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
