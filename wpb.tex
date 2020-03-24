@@ -18,14 +18,14 @@
 
 \author{Kendra M. Wu}
 
-\date{27 November 2019 (last update: 07 February 2020) - WIP}
+\date{27 November 2019 (last update: 23 March 2020) - WIP}
 
 \begin{document}
 	\maketitle
 	
 	\section{Introduction}
 	This document discusses the work package B (WPB) of the project Adaptive Design and Genomics in Outbreaks (ADAGIO).
-
+	
 	\section{Transmission dynamic model}
 	\label{sec:TransModel}
 	\subsection{Model structure}
@@ -38,7 +38,7 @@
 	\subsection{Epidemiological dynamics}
 	We use a stochastic five-compartmental model to describe the epidemiological dynamics of the disease, where the five compartments represent: susceptible individuals ($S$), who can be infected after contact with infectious individuals; exposed individuals ($E$), who are infected but not yet infectious to others; infectious individuals ($I$) within the community; recovered individuals ($R$), who are recovered and immune from the disease and are no longer infectious; and vaccinated individuals ($V$), who have been vaccinated against the disease.
 	
-	The incubation and latent periods are assumed to be concurrent, that is, symptom onset occurs when infectiousness begins. We modelled them as $\Gamma$-distributed using the following Ebola-like parameters\cite{Hitchings2018AmJEpi}: For incubation period, we use shape = 3.11 and rate = 0.32; For infectious period, we use shape = 1.13 and rate = 0.226. These numbers result in an average incubation/ latent period of 7.14 days and an average infectious period of 3 days.
+	The incubation and latent periods are assumed to be concurrent, that is, symptom onset occurs when infectiousness begins. We modelled them as $\Gamma$-distributed using the following Ebola-like parameters\cite{Hitchings2018AmJEpi}: For incubation period, we use shape = 3.45 and rate = 0.66; For infectious period, we use shape = 5.0 and rate = 0.8. These numbers result in an average incubation/ latent period of 5.22 days and an average infectious period of 6.25 days.
 	
 	\subsection{Spatial dynamics}
 	To describe the spatial dynamics, we use a network model, which describes a population that is separable into groups. In this case, we model the study population into three levels of community structure. That is, each node represents an individual. Varying sizes of individuals form a household. Then multiple households form a community, and multiple communities form a region of the population. We use stochastic block network model to define whether there is a contact edge between two nodes. If there is a contact edge between them, and one of them is an infectious individual ($I$) while another is a susceptible individual ($S$), another stochastic block network model will determine if there will be a transmission edge between them to have disease transmission occurrence. The modelling framework can, however, be readily extended to account for heterogeneity with different parameters (See Section \ref{sec:Example}).
@@ -83,36 +83,37 @@
 	
 	\subsection{Applying the transmission model to different scenarios}
 	\label{sec:Example}
-	This transmission model is written with an intend that it is versatile enough so that it can be easily modified to describe a specific pathogen in a more specific setting if required. Or else, it can be used for comparing different pathogen(s) and/or different setting(s) using various parameter inputs. In terms of pathogens, this model can be applied to the following three scenarios: a) A pathogen that spreads sustainably between people in the community (e.g., influenza); b) A pathogen that spreads between people largely in hospitals or classrooms (e.g., SARS-CoV); and c) A pathogen that spreads in animal populations, but that can spillover and spread between humans unsustainably or otherwise (e.g., 2019-nCoV, avian influenza, monkeypox). 
+	This transmission model is written with an intend that it is versatile enough so that it can be easily modified to describe a specific pathogen in a more specific setting if required. Or else, it can be used for comparing different pathogen(s) and/or different setting(s) using various parameter inputs. In terms of pathogens, this model can be applied to the following three scenarios: a) A pathogen that spreads sustainably between people in the community (e.g., influenza); b) A pathogen that spreads between people largely in hospitals or classrooms (e.g., SARS-CoV); and c) A pathogen that spreads in animal populations, but that can spillover and spread between humans unsustainably or otherwise (e.g., COVID-19, avian influenza, monkeypox). 
 	
 	This transmission model is not applicable to a homogeneously mixing population however because spatial dynamic structure is involved, so that $R_0$ is a function of transmissibility and mean degree of the network, as opposed to transmission rate and recovery rate. Thus, when we simulate a homogeneously mixing population, we need to remove the spatial dynamic structure and only compute epidemiological parameters from the SEIRV epidemiological dynamic model.
 	
 	\subsection{Some preliminary plots from the transmission model}
 	When the number of imported cases at day 1 of the epidemic was 5, initial per-time-step probability of infection for a susceptible nodes from an infectious neighbour ($\lambda_0$) was 0.01, and $k$ = $N-1$, Figures \ref{fig:seirv} shows an example of how an epidemic may progress.
 	\begin{figure}[!ht]
-	    \begin{center}	
+		\begin{center}	
 			\includegraphics[width=4in]{./Figures/sbm8_fig1.jpg} 
 		\end{center}
 		\caption[Number of infectious people in the population]{Number of infectious people in the population.}
 		\label{fig:seirv}
 	\end{figure}
-		  
-Running 20 iterations resulting in Figures \ref{fig:transmodel1}, which shows A) the resulting number of infectious people in the population; B) the corresponding median, 5\% quantile, and 95\% quantile; and C) the variations of $R_0$ according to transmissibility when $k$ was $N-1$. 	    
+	
+	Running 20 iterations resulting in Figures \ref{fig:transmodel1}, which shows A) the resulting number of infectious people in the population; B) the corresponding median, 5\% quantile, and 95\% quantile; and C) the variations of $R_0$ according to transmissibility when $k$ was $N-1$. 	    
 	\begin{figure}[!ht]
 		\begin{center}	
 			\includegraphics[width=4in]{./Figures/sbm8_fig2.jpg} 
 		\end{center}
-	\caption[Number of infectious people in the population]{(A) Number of infectious people in the population; (B) The median, 5\% quantile, and 95\% quantile of the number of infectious people in the population; (C) Variations of $R_0$ based on transmissibility when $k$ was $N-1$.}
-	\label{fig:transmodel1}
+		\caption[Number of infectious people in the population]{(A) Number of infectious people in the population; (B) The median, 5\% quantile, and 95\% quantile of the number of infectious people in the population; (C) Variations of $R_0$ based on transmissibility when $k$ was $N-1$.}
+		\label{fig:transmodel1}
 	\end{figure}
-		
+	
 	\newpage
 	\section{Clinical trial design}
 	\label{sec:TrialDesign}
-	This study sets out to use adaptive individually-randomized control trial (iRCT) to answer the following questions (for now) based on information feeds from the transmission dynamic model describes in Section \ref{sec:TransModel}:
+	This study sets out to use different vaccine trial designs to answer the following questions (for now) based on information feeds from the transmission dynamic model describes in Section \ref{sec:TransModel}:
 	\begin{enumerate}
-		\item When to start the iRCT (relative to day 1 of the epidemic)?
-		\item What is the most effective allocation ratio?
+		%\item When to start the iRCT (relative to day 1 of the epidemic)?
+		\item When there is only one vaccine candidate, when may the trial be stopped, and what are the operating characteristics?
+		\item When there are more than one vaccine candidates, when may a particular vaccine candidate be dropped, and what are the operating characteristics?
 	\end{enumerate}
 	
 	Figure \ref{fig:trial} shows the schematic of the clinical trial design. 
@@ -120,13 +121,142 @@ Running 20 iterations resulting in Figures \ref{fig:transmodel1}, which shows A)
 		\begin{center}	
 			\includegraphics[width=4in]{./Figures/trial_schematic.jpg} 
 		\end{center}
-	\caption[Schematic of the clinical trial design]{Schematic of the clinical trial design.}
-	\label{fig:trial}
-	\end{figure}	
+		\caption[Schematic of the clinical trial design]{Schematic of the clinical trial design.}
+		\label{fig:trial}
+	\end{figure}
 	
-\newpage	
-\label{Bibliography}
-\bibliographystyle{plos2015}
-\bibliography{wpb}
+	Assuming infection status (yes/ no) as the endpoint (for now), in the individual randomised controlled trials (iRCTs), the entire population $N$ was recruited; whereas in clustered randomized controlled trials (cRCTs), it was the population within a cluster(s), whether it is a district, a hospital, or a school, that have had infectious case(s) was recruited. Here 60\% was used as an input parameter, that is, 60\% of the total population would be enrolled into the trial in iRCTs eventually, and in cRCTs, 60\% of the population within each chosen cluster(s), where an infectious case was reported, would be enrolled. Table \ref{trial_designs_without_priority} shows the preliminary results when the mean degree of the network, $k$, was $N-1$ with $N$ being 2000 after running 25 iterations and by following up the population for 190 days post randomisation (Note: 25 iterations do not appear to have complete convergence of results). The table displays the operational characteristics using optimum randomisation allocations with per-time-step probability of infection for a susceptible individuals from an an infectious neighbour, $\lambda$, as 0.000069, which results in an average reproductive number of approximately 2.5 without any intervention (Table \ref{trial_designs_without_priority}). Optimum randomisation allocations were obtained for the Rosenberger and Thompson Sampling (TS) adaptions after each interim analysis; whereas, when there is no adaption, equal randomisation allocation was used.  
+	
+	Next, another strategy are compared when different sub-population groups were prioritized during recruitment to determine the potential impacts. These sub-population groups include: High-risk individuals, high exposure individuals, and key transmission vectors. They are recruited and enrolled at the first day of the trial, and then the rest of the population were recruited and enrolled 3 days after. High-risk represents individuals with certain underlying medical conditions that are particularly vulnerable to the infection of the disease and are prone to result in severe illness and complications if infected. For example, those with cardiovascular diseases (for COVID-19). High-exposure represents individuals who have more opportunity to be exposed to this pathogen and therefore, have higher opportunity to infect those who interact with. For instance, health care workers, elderly home carers (for seasonal influenza), poultry workers (for avian influenza). The key transmission vector represents those who are mainly responsible for transmitting the disease, for instance, young school-aged children (for influenza) and international travellers (for COVID-19). The results from iRCTs are shown in Tables \ref{iRCTs_with_priority} and those from cRCTs are shown in Table \ref{cRCTs_with_priority}.
+	
+	The following parameters will be relaxed in the next run: i) The trial began on day 10 with the assumptions that all recruited and enrolled were vaccinated on day 10, and immunity develops immediately, which are unrealistic; ii) The vaccines are assumed to provide full protection to the target disease to those who are vaccinated; and iii) No one in the population is immune to the disease.
+	
+	Table \ref{trial_start_days} shows the results when trial begins very early of the epidemic (e.g., day 5), at the middle of the exponential growth of the epidemic (e.g., day 10), around the peak of the epidemic (e.g., day 50), and while the epidemic is declining (e.g., day 60) for comparison.
+	
+	
+	\begin{landscape}	
+		\begin{table}[]
+			\centering
+			\caption{Results from individual randomized controlled trials (iRCTs) and cluster randomized controlled trials (cRCTs) without prioritizing sub-population groups using different method of adaptions}
+			\label{trial_designs_without_priority}
+			\begin{tabular}{|l|l|l|l|l|l|l|l|} \hline
+				Randomisation & Adaptation & Start day & Sample size & Infectious & Time-To-Events & Vaccine Efficacy & R0\\
+				& & of trial & & People & (TTE) & (VE)  & \\ \hline \hline
+				Individual & None & 10 & 11 (10,16) & 190 (165,223) & 5.0 (1.0,12.0) & 0.944 (0.917,0.971) & 2.07 (1.80,2.38)\\ 
+				Individual & Ros & 10 & 2 (2,8) & 194 (172,214) & 4 (1,11) & 0.970 (0.664,0.981) & 2.71 (2.26,3.00)\\ 
+				Individual & TS & 10 & 11 (10,15) & 282 (241,323) & 4.0 (1.0,10.0) & 0.948 (0.930,0.968) & 1.87 (1.59,2.22)\\ \hline
+				Cluster & None & 10 & 3 (2,5) & 121 (107,140) & 4.0 (1.0,9.0) & 0.960 (0.939,0.987) & 2.78 (2.47,3.11)\\
+				Cluster & Ros & 10 & 3 (1,4) & 193 (177,214) & 4.0 (1.0,10.0) & 0.965 (-0.24,0.973) & 2.78 (2.43,3.13)\\
+				Cluster & TS & 10 & 1 (0.1,4) & 158 (110,193) & 5.0 (1.0,11.0) & 0.967 (0.821,0.980) & 2.55 (2.10,2.73)\\ \hline \hline
+			\end{tabular}
+		\end{table}
+		
+		\begin{table}[]
+			\centering
+			\caption{Results from individual randomized controlled trials (iRCTs) by prioritizing sub-population groups and different methods of adaption}
+			\label{iRCTs_with_priority}
+			\begin{tabular}{|l|l|l|l|l|l|l|l|} \hline
+				Randomisation & Adaptation & Start day & Sample size & Infectious & TTE & VE & R0\\ \hline \hline
+				Individual (Prioritize high risk) & None & 10 & 0 & 0 & 0 & 0 & \\
+				Individual (Prioritize high risk) & Ros & 10 & 0 & 0 & 0 & 0 & \\
+				Individual (Prioritize high risk) & TS & 10 & 0 & 0 & 0 & 0 & \\
+				Individual (Prioritize high exposure ) & None & 10 & 0 & 0 & 0 & 0 & \\
+				Individual (Prioritize high exposure) & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				Individual (Prioritize high exposure) & TS & 10 & 0 & 0 & 0 & 0 & \\
+				Individual (Prioritize key transmission vectors) & None & 10 & 0 & 0 & 0 & 0  & \\
+				Individual (Prioritize key transmission vectors) & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				Individual (Prioritize key transmission vectors) & TS & 10 & 0 & 0 & 0 & 0  & \\
+				\hline 
+				Individual & None & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure) &  &  &  &  &  &  & \\
+				Individual & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure) &  &  &  &  &  &  & \\
+				Individual & TS & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure) &  &  &  &  &  &  & \\
+				Individual & None & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + key transmission vectors) &  &  &  &  &  &  & \\
+				Individual & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + key transmission vectors) &  &  &  &  &  &  & \\
+				Individual & TS & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + key transmission vectors) &  &  &  &  &  &  & \\
+				Individual & None & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Individual & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Individual & TS & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Individual & None & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Individual & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Individual & TS & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				\hline \hline 
+			\end{tabular}
+		\end{table}
+		
+		\begin{table}[]
+			\centering
+			\caption{Results from cluster randomized controlled trials (cRCTs) by prioritizing sub-population groups and different methods of adaption}
+			\label{cRCTs_with_priority}
+			\begin{tabular}{|l|l|l|l|l|l|l|l|} \hline
+				Randomisation & Adaptation & Start day & Sample size & Infectious & TTE & VE & R0\\ \hline \hline
+				Cluster (Prioritize high risk) & None & 10 & 0 & 0 & 0 & 0 & \\
+				Cluster (Prioritize high risk) & Ros & 10 & 0 & 0 & 0 & 0 & \\
+				Cluster (Prioritize high risk) & TS & 10 & 0 & 0 & 0 & 0 & \\
+				Cluster (Prioritize high exposure ) & None & 10 & 0 & 0 & 0 & 0 & \\
+				Cluster (Prioritize high exposure) & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				Cluster (Prioritize high exposure) & TS & 10 & 0 & 0 & 0 & 0 & \\
+				Cluster (Prioritize key transmission vectors) & None & 10 & 0 & 0 & 0 & 0  & \\
+				Cluster (Prioritize key transmission vectors) & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				Cluster (Prioritize key transmission vectors) & TS & 10 & 0 & 0 & 0 & 0  & \\
+				\hline 
+				Cluster & None & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure) &  &  &  &  &  &  & \\
+				Cluster & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure) &  &  &  &  &  &  & \\
+				Cluster & TS & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure) &  &  &  &  &  &  & \\
+				Cluster & None & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + key transmission vectors) &  &  &  &  &  &  & \\
+				Cluster & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + key transmission vectors) &  &  &  &  &  &  & \\
+				Cluster & TS & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + key transmission vectors) &  &  &  &  &  &  & \\
+				Cluster & None & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Cluster & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Cluster & TS & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Cluster & None & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Cluster & Ros & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				Cluster & TS & 10 & 0 & 0 & 0 & 0  & \\
+				(Prioritize high risk + exposure + key transmission vectors) &  &  &  &  &  &  & \\
+				\hline \hline 
+			\end{tabular}
+		\end{table}
+		
+		\begin{table}[]
+			\centering
+			\caption{Results from different trial start days}
+			\label{trial_start_days}
+			\begin{tabular}{|l|l|l|l|l|l|l|l|} \hline
+				Randomisation & Adaptation & Start day & Sample size & Infectious & TTE & VE & R0\\
+				& & of trial & & People &  &  & \\ \hline \hline
+				%        Individual & None & 5 & 19 & 153 & 4.2 & 0.977 \\
+				%		Individual & None & 10 & 20 & 131 & 4.6 & 0.950 \\ 
+				%		Individual & None & 50 & 33 & 285 & 4.1 & 0.584 \\
+				%		Individual & None & 70 & 94 & 454 & 4.4 & 0.259 \\ \hline
+			\end{tabular}
+		\end{table}
+	\end{landscape}
+	
+	\newpage	
+	\label{Bibliography}
+	\bibliographystyle{plos2015}
+	\bibliography{wpb}
 	
 \end{document}
