@@ -11,7 +11,7 @@ Infections are also introduced into the population randomly, that is, case impor
 
 This transmission model is written with an intend that it is versatile enough so that it can be easily modified to describe a specific pathogen in a more specific setting if required. Or else, it can be used for comparing different pathogen(s) and/or different setting(s) using various parameter inputs. In terms of pathogens, this model can be applied to the following three scenarios: a) A pathogen that spreads sustainably between people in the community (e.g., influenza); b) A pathogen that spreads between people largely in hospitals or classrooms (e.g., SARS-CoV); and c) A pathogen that spreads in animal populations, but that can spillover and spread between humans unsustainably or otherwise (e.g., COVID-19, avian influenza, monkeypox).
 
-Preliminary results indicates a cRCT design is more effective to lower the number of infected cases. For greater details, and the clinical vaccine trial design (WIP), please refer to https://www.overleaf.com/read/zjgfvwqndhfz. NB. Not yet peer reviewed.
+Preliminary results indicates a cRCT design is more effective to lowering the number of infected cases. For greater details, and the clinical vaccine trial design (WIP), please refer to https://www.overleaf.com/read/zjgfvwqndhfz. NB. Not yet peer reviewed.
 
 DOI: https://doi.org/10.6084/m9.figshare.11777832
 
