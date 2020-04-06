@@ -1726,7 +1726,7 @@ function fn_plot(X,Y)
 end
 
 # Function to enroll the population into trial by individuals
-function fn_trialsetup_iRCT_highrisk(N, tstatus, prop_in_trial, prop_in_highrisk, allocation_ratio, vac_efficacy, protection_threshold)
+function fn_trialsetup_iRCT_highrisk_tmp(N, tstatus, prop_in_trial, prop_in_highrisk, allocation_ratio, vac_efficacy, protection_threshold)
 
     # Inputs:
     # N: Total size of population
@@ -1779,7 +1779,7 @@ function fn_trialsetup_iRCT_highrisk(N, tstatus, prop_in_trial, prop_in_highrisk
 end
 
 
-function fn_iteration_iRCT_highrisk(nsim, soln1, nstatuts1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, prop_in_highrisk, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+function fn_iteration_iRCT_highrisk_tmp(nsim, soln1, nstatuts1, tstatus1, VE_true1, samplesize1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, prop_in_highrisk, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
 
     soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
     soln1_mat[:,1] = soln1[:,1]
