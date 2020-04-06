@@ -440,7 +440,7 @@ function fn_iteration_iRCT_non_adpative(nsim, soln1, nstatuts1, tstatus1, VE_tru
     return soln_mat, nstatus_mat, tstatus_mat, n_infectious_people_mat, n_exposed_people_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
 end
 
-function fn_iteration_iRCT_MLE(nsim, soln1, nstatuts1, tstatus1, VE_true1, samplesize1, n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+function fn_iteration_iRCT_MLE_tmp(nsim, soln1, nstatuts1, tstatus1, VE_true1, samplesize1, n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
 
     soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
     soln1_mat[:,1] = soln1[:,1]
@@ -520,7 +520,7 @@ function fn_iteration_iRCT_MLE(nsim, soln1, nstatuts1, tstatus1, VE_true1, sampl
     return soln_mat, nstatus_mat, tstatus_mat, VE_true_mat, samplesize_mat, TTE_mat, communitysize_arr, communitynum_arr, T_mat, R0_mat
 end
 
-function fn_iteration_iRCT_Bayes(nsim, soln1, nstatus1, tstatus1, VE_true1, samplesize1, n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
+function fn_iteration_iRCT_Bayes_tmp(nsim, soln1, nstatus1, tstatus1, VE_true1, samplesize1, n_control1, n_treatment1, n_infectious_control1, n_infectious_treatment1, n_exposed_control1, n_exposed_treatment1, N, par_hh, par_community, par_prob, par_disease, prop_in_trial, import_lambda, casenum0, immunenum0, allocation_ratio, vac_efficacy, protection_threshold, treatment_gp, gamma_infectperiod_maxduration, trial_begintime, trial_endtime, endtime)
 
     soln1_mat = zeros(Int, round(Int,endtime), 5) # Same as soln1, except it is a matrix, not a DataFrame
     soln1_mat[:,1] = soln1[:,1]
