@@ -199,7 +199,7 @@ function fn_cluster_partition(N, par_hh, par_community, par_compartment, prop_in
     compartmentsize_keyvec_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
     compartmentnum_keyvec_arr = sample(1:N, compartmentsize_keyvec_arr[1], replace=false, ordered=true)  # Assign compartment number to each individual in the population
 
-    return hhnum_arr, communitynum_arr, compartmentnum_highrisksize_arr, compartmentnum_hcw_arr, compartmentnum_keyvec_arr
+    return hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, compartmentnum_highrisksize_arr, compartmentnum_hcw_arr, compartmentnum_keyvec_arr
 end
 
 function fn_pretransmission(N, par_hh, par_community, par_prob, par_disease, import_lambda, casenum0, immunenum0, endtime)
