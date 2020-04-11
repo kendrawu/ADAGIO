@@ -26,6 +26,7 @@ lambda0 = 0.00006 # Per-time-step probability of infection for a susceptible nod
 prop_in_trial = 0.6 # Proportion of the population/ cluster will be enrolled in the trial
 prop_in_highrisk = 0.2 # Proportion of the population/ in the cluster are at high risk
 prop_in_hcw = (2.8/1000*N + N/8)/N # Based on data in England, 2.8 doctor per patient and 8 nurses per patient
+prop_in_keyvec = 0.3 # Proportion of children in the population/ in the cluster who are key transmisison vector
 ## The households
 # hhnum: Number of households in the network
 # hhsize_avg: AVE_truerage size of one household
@@ -59,12 +60,11 @@ par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_
 #par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
 par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5.0, infectperiod_rate=0.8)
 
-nsim = 3 # Number of simulations
+nsim = 15 # Number of simulations
 trial_begintime = 10.0
 endtime = trial_begintime + 190.0 # Duration of simulation (timestep is in a unit of days)
 trial_endtime = endtime
 trial_posthighrisk = 3.0 # The number of days after trial_begintime we begin to recruit the rest of the population
-prop_in_keyVE_truec = 0.3 # Proportion of children in the population/ in the cluster who are key transmisison VE_truector
 trial_communitynum = [1]
 treatment_gp = 1 # it needs to be an integer, not an array
 vac_efficacy = [0.6]
@@ -97,7 +97,7 @@ for isim in 1:nsim
     sbm_sol = DataFrame(S=fill(0,round(Int,endtime)), E=fill(0,round(Int,endtime)), I=fill(0,round(Int,endtime)), R=fill(0,round(Int,endtime)), V=fill(0,round(Int,endtime))) #Initialize the matrix which holds SEIR incidence of all timestep
 
     # Divide the population into compartments
-    #(hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, compartmentnum_highrisksize_arr, compartmentnum_hcw_arr, compartmentnum_keyVE_truec_arr) = fn_cluster_partition(N, prop_in_highrisk, prop_in_hcw, prop_in_keyVE_truec)
+    #(hhsize_arr, hhnum_arr, communitysize_arr, communitynum_arr, compartmentnum_highrisksize_arr, compartmentnum_hcw_arr, compartmentnum_keyVE_truec_arr) = fn_cluster_partition(N, prop_in_highrisk, prop_in_hcw, prop_in_keyvec)
 
     # For high-risk group
     prop_in_eachcompartment = prop_in_highrisk
@@ -114,7 +114,7 @@ for isim in 1:nsim
     compartmentnum_hcw_arr = sample(1:N, round(Int,compartmentsize_hcw_arr[1]), replace=false, ordered=true) # Assign compartment number to each individual in the population
 
     # For key transmission VE_truector
-    prop_in_eachcompartment = prop_in_keyVE_truec
+    prop_in_eachcompartment = prop_in_keyvec
     par_compartment_keyVE_truec = DataFrame(compartmentnum=2, compartmentsize_avg=(N*prop_in_eachcompartment)/2, compartmentsize_range=200)
     par_compartment = par_compartment_keyVE_truec
     compartmentsize_keyVE_truec_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
@@ -317,7 +317,7 @@ for isim in 1:nsim
         println("Time-to-EVE_truent: mean: ", mean(filter(isfinite, TTE_mat[:,2])), ", CI: ", TTE_CI)
 
         VE_CI = quantile(VE_true_mat, [0.5, 0.05, 0.95])
-        println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_true_CI)
+        println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_CI)
 
         R0_CI = quantile(R0_mat, [0.5, 0.05, 0.95])
         println("ReproductiVE_true number without interVE_truention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
