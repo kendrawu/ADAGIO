@@ -345,5 +345,6 @@ for isim in 1:nsim
 
             (plot1, plot2) = fn_plot(X,Y)
             plot(plot1,plot2,layout=(2,1))
+        end
     end
 end
