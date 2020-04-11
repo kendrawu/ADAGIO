@@ -306,8 +306,9 @@ for isim in 1:nsim
         TTE_mat = vcat(TTE_mat, TTE)
         VE_true_mat = vcat(VE_true_mat, VE_true)
         R0_mat = vcat(R0_mat, R0)
-
-    elseif isum==nsim
+    end
+    
+    if isum==nsim
         samplesize_CI = quantile(samplesize_mat, [0.5, 0.05, 0.95])
         println("Sample size (from true cases): mean: ", mean(filter(isfinite, samplesize_mat)), ", CI: ", samplesize_CI)
 
