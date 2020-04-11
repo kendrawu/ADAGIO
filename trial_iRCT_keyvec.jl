@@ -307,6 +307,7 @@ for isim in 1:nsim
         VE_true_mat = vcat(VE_true_mat, VE_true)
         R0_mat = vcat(R0_mat, R0)
 
+    elseif isum==nsim
         samplesize_CI = quantile(samplesize_mat, [0.5, 0.05, 0.95])
         println("Sample size (from true cases): mean: ", mean(filter(isfinite, samplesize_mat)), ", CI: ", samplesize_CI)
 
@@ -314,13 +315,13 @@ for isim in 1:nsim
         println("AVE_truerage number of infectious people in the trial: mean: ", mean(filter(isfinite, n_infectious_people_mat)), ", CI: ", n_infectious_people_CI)
 
         TTE_CI = quantile!(TTE_mat[:,2], [0.5, 0.05, 0.95])
-        println("Time-to-EVE_truent: mean: ", mean(filter(isfinite, TTE_mat[:,2])), ", CI: ", TTE_CI)
+        println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat[:,2])), ", CI: ", TTE_CI)
 
         VE_CI = quantile(VE_true_mat, [0.5, 0.05, 0.95])
         println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_CI)
 
         R0_CI = quantile(R0_mat, [0.5, 0.05, 0.95])
-        println("ReproductiVE_true number without interVE_truention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
+        println("Reproductive number without intervention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
 
         Y = fn_divide(soln_mat, endtime, nsim, 3)
         lowerCI = zeros(round(Int,endtime))
