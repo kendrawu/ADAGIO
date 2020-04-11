@@ -22,7 +22,7 @@ V0 = 0 # Number of vaccinated individuals in the population at day 0
 casenum0 = 5 # Number of infectious individuals introduced into the community to begin the outbreak
 immunenum0 = 0 # Number of people who are immune to the disease at the beginning of the outbreak
 import_lambda = 1 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
-lambda0 = 0.000053 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+lambda0 = 0.000052 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
 prop_in_trial = 0.6 # Proportion of the population/ cluster will be enrolled in the trial
 prop_in_highrisk = 0.2 # Proportion of the population/ in the cluster are at high risk
 prop_in_hcw = (2.8/1000*N + N/8)/N # Based on data in England, 2.8 doctor per patient and 8 nurses per patient
@@ -60,7 +60,7 @@ par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_
 #par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
 par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5.0, infectperiod_rate=0.8)
 
-nsim = 15 # Number of simulations
+nsim = 3 # Number of simulations
 trial_begintime = 10.0
 endtime = trial_begintime + 190.0 # Duration of simulation (timestep is in a unit of days)
 trial_endtime = endtime
@@ -301,48 +301,49 @@ for isim in 1:nsim
         println("Reproductive number without intervention ", R0)
 
     if isim>1
+        println("If isim>1: ", isim)
         samplesize_mat = vcat(samplesize_mat, samplesize)
         n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control + n_infectious_treatment)
         TTE_mat = vcat(TTE_mat, TTE)
         VE_true_mat = vcat(VE_true_mat, VE_true)
         R0_mat = vcat(R0_mat, R0)
-    end
-    
-    if isum==nsim
-        samplesize_CI = quantile(samplesize_mat, [0.5, 0.05, 0.95])
-        println("Sample size (from true cases): mean: ", mean(filter(isfinite, samplesize_mat)), ", CI: ", samplesize_CI)
 
-        n_infectious_people_CI = quantile(n_infectious_people_mat, [0.5, 0.05, 0.95])
-        println("AVE_truerage number of infectious people in the trial: mean: ", mean(filter(isfinite, n_infectious_people_mat)), ", CI: ", n_infectious_people_CI)
+        if isim==nsim
+            println("If isim==nsim: ", isim)
+            samplesize_CI = quantile(samplesize_mat, [0.5, 0.05, 0.95])
+            println("Sample size (from true cases): mean: ", mean(filter(isfinite, samplesize_mat)), ", CI: ", samplesize_CI)
 
-        TTE_CI = quantile!(TTE_mat[:,2], [0.5, 0.05, 0.95])
-        println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat[:,2])), ", CI: ", TTE_CI)
+            n_infectious_people_CI = quantile(n_infectious_people_mat, [0.5, 0.05, 0.95])
+            println("AVE_truerage number of infectious people in the trial: mean: ", mean(filter(isfinite, n_infectious_people_mat)), ", CI: ", n_infectious_people_CI)
 
-        VE_CI = quantile(VE_true_mat, [0.5, 0.05, 0.95])
-        println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_CI)
+            TTE_CI = quantile!(TTE_mat[:,2], [0.5, 0.05, 0.95])
+            println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat[:,2])), ", CI: ", TTE_CI)
 
-        R0_CI = quantile(R0_mat, [0.5, 0.05, 0.95])
-        println("Reproductive number without intervention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
+            VE_CI = quantile(VE_true_mat, [0.5, 0.05, 0.95])
+            println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_CI)
 
-        Y = fn_divide(soln_mat, endtime, nsim, 3)
-        lowerCI = zeros(round(Int,endtime))
-        upperCI = zeros(round(Int,endtime))
-        medianCI = zeros(round(Int,endtime))
-        for index = 1:round(Int,endtime)
-            lowerCI[index] = quantile!(Y[index,:], 0.05)
-            upperCI[index] = quantile!(Y[index,:], 0.95)
-            medianCI[index] = median(Y[index,:])
-        end
+            R0_CI = quantile(R0_mat, [0.5, 0.05, 0.95])
+            println("Reproductive number without intervention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
 
-        X = fn_translate_nstatus(N, nstatus_mat, tstatus_mat, endtime, nsim, round(Int,endtime+1))
-        infectednum = zeros(Int, nsim)
-        for index in 1: nsim
-            infectednum[index] = fn_casecounting(X, N, prop_in_trial, allocation_ratio, index)
-        end
-        n_infected = sum(infectednum)
-        println("Number of infected on average: ", n_infected/nsim)
+            Y = fn_divide(soln_mat, endtime, nsim, 3)
+            lowerCI = zeros(round(Int,endtime))
+            upperCI = zeros(round(Int,endtime))
+            medianCI = zeros(round(Int,endtime))
+            for index = 1:round(Int,endtime)
+                lowerCI[index] = quantile!(Y[index,:], 0.05)
+                upperCI[index] = quantile!(Y[index,:], 0.95)
+                medianCI[index] = median(Y[index,:])
+            end
 
-        (plot1, plot2) = fn_plot(X,Y)
-        plot(plot1,plot2,layout=(2,1))
+            X = fn_translate_nstatus(N, nstatus_mat, tstatus_mat, endtime, nsim, round(Int,endtime+1))
+            infectednum = zeros(Int, nsim)
+            for index in 1: nsim
+                infectednum[index] = fn_casecounting(X, N, prop_in_trial, allocation_ratio, index)
+            end
+            n_infected = sum(infectednum)
+            println("Number of infected on average: ", n_infected/nsim)
+
+            (plot1, plot2) = fn_plot(X,Y)
+            plot(plot1,plot2,layout=(2,1))
     end
 end
