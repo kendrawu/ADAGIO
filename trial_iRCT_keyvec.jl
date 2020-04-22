@@ -334,8 +334,6 @@ for isim in 1:nsim
     println("Results:")
     println("Number of iteration: ", isim)
     if isim==1
-        println("Right after computation (samplesize): ", samplesize)
-        # Initializations
         samplesize_mat = deepcopy(samplesize)
         n_infectious_people = n_infectious_control + n_infectious_treatment
         n_infectious_people_mat = deepcopy(n_infectious_people)
@@ -343,39 +341,39 @@ for isim in 1:nsim
         VE_true_mat = deepcopy(VE_true)
         R0_mat = deepcopy(R0)
         global samplesize_mat, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat
-        #println("Right after computation (samplesize_mat): ", samplesize_mat)
+
     else
-        #samplesze=1
-        #println(samplesize_mat)
         (samplesize_mat, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat) = fn_update_vars(samplesize, samplesize_mat, n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat, treatment_gp, timestep_fn, alpha, power, nstatus, tstatus, trial_begintime, trial_endtime, gamma_infectperiod_maxduration, Gc, N, T_arr)
+
+        if isim==nsim
+            samplesize_CI = quantile(samplesize_mat, [0.5, 0.05, 0.95])
+            println("Sample size (from true cases): mean: ", mean(filter(isfinite, samplesize_mat)), ", CI: ", samplesize_CI)
+
+            n_infectious_people_CI = quantile(n_infectious_people_mat, [0.5, 0.05, 0.95])
+            println("Average number of infectious people in the trial: mean: ", mean(filter(isfinite, n_infectious_people_mat)), ", CI: ", n_infectious_people_CI)
+
+            VE_CI = quantile(VE_true_mat, [0.5, 0.05, 0.95])
+            println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_CI)
+
+            R0_CI = quantile(R0_mat, [0.5, 0.05, 0.95])
+            println("Reproductive number without intervention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
+
+            TTE_CI = quantile!(TTE_mat, [0.5, 0.05, 0.95])
+            println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat)), ", CI: ", TTE_CI)
+
+            #Y = fn_divide(soln_mat3, endtime, nsim, 1)
+            #lowerCI = zeros(round(Int,endtime))
+            #upperCI = zeros(round(Int,endtime))
+            #medianCI = zeros(round(Int,endtime))
+            #for index = 1:round(Int,endtime)
+            #    lowerCI[index] = quantile!(Y[index,:], 0.05)
+            #    upperCI[index] = quantile!(Y[index,:], 0.95)
+            #    medianCI[index] = median(Y[index,:])
+            #end
+            #X = [lowerCI, medianCI, upperCI]
+            #plot1 = plot(1:Int(endtime), Y, legend=false)
+            #plot2 = plot(1:Int(endtime), X, legend=[lowerCI, median, upperCI])
+            #plot(plot1, plot2, layout = (2, 1))
+        end
     end
-
-    samplesize_CI = quantile(samplesize_mat, [0.5, 0.05, 0.95])
-    println("Sample size (from true cases): mean: ", mean(filter(isfinite, samplesize_mat)), ", CI: ", samplesize_CI)
-
-    n_infectious_people_CI = quantile(n_infectious_people_mat, [0.5, 0.05, 0.95])
-    println("Average number of infectious people in the trial: mean: ", mean(filter(isfinite, n_infectious_people_mat)), ", CI: ", n_infectious_people_CI)
-
-    VE_CI = quantile(VE_true_mat, [0.5, 0.05, 0.95])
-    println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_CI)
-
-    R0_CI = quantile(R0_mat, [0.5, 0.05, 0.95])
-    println("Reproductive number without intervention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
-
-    TTE_CI = quantile!(TTE_mat, [0.5, 0.05, 0.95])
-    println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat)), ", CI: ", TTE_CI)
-
-        #Y = fn_divide(soln_mat3, endtime, nsim, 1)
-        #lowerCI = zeros(round(Int,endtime))
-        #upperCI = zeros(round(Int,endtime))
-        #medianCI = zeros(round(Int,endtime))
-        #for index = 1:round(Int,endtime)
-        #    lowerCI[index] = quantile!(Y[index,:], 0.05)
-        #    upperCI[index] = quantile!(Y[index,:], 0.95)
-        #    medianCI[index] = median(Y[index,:])
-        #end
-        #X = [lowerCI, medianCI, upperCI]
-        #plot1 = plot(1:Int(endtime), Y, legend=false)
-        #plot2 = plot(1:Int(endtime), X, legend=[lowerCI, median, upperCI])
-        #plot(plot1, plot2, layout = (2, 1))
 end
