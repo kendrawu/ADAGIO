@@ -52,14 +52,14 @@ function fn_update_vars(samplesize, samplesize_mat, n_control, n_treatment, n_in
 end
 
 # Set parameter values
-N = 2000 # Total population size
+N = 4000 # Total population size
 begintime = 1.0
 S0 = N # Number of suspectible people in the population at day 0
 V0 = 0 # Number of vaccinated individuals in the population at day 0
 casenum0 = 5 # Number of infectious individuals introduced into the community to begin the outbreak
 immunenum0 = 0 # Number of people who are immune to the disease at the beginning of the outbreak
 import_lambda = 1 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
-lambda0 = 0.000052 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+lambda0 = 0.0000052 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
 prop_in_trial = 0.6 # Proportion of the population/ cluster will be enrolled in the trial
 prop_in_highrisk = 0.2 # Proportion of the population/ in the cluster are at high risk
 prop_in_hcw = (2.8/1000*N + N/8)/N # Based on data in England, 2.8 doctor per patient and 8 nurses per patient
@@ -68,14 +68,14 @@ prop_in_keyvec = 0.3 # Proportion of children in the population/ in the cluster 
 # hhnum: Number of households in the network
 # hhsize_avg: AVE_truerage size of one household
 # hhsize_range: Range of household sizes (sizes are uniformly distributed)
-par_hh = DataFrame(hhnum=650, hhsize_avg=3, hhsize_range=2)
+par_hh = DataFrame(hhnum=1300, hhsize_avg=3, hhsize_range=2)
 #par_hh = DataFrame(hhnum=1, hhsize_avg=500, hhsize_range=0)
 
 ## The clustered network
 # communitynum: Number of communities in the clustered network
 # communitysize_avg: AVE_truerage size of one community
 # communitysize_range: Range of community sizes (sizes are uniformly distributed)
-par_community = DataFrame(communitynum=3, communitysize_avg=650, communitysize_range=10)
+par_community = DataFrame(communitynum=4, communitysize_avg=1000, communitysize_range=50)
 #par_community = DataFrame(communitynum=1, communitysize_avg=500, communitysize_range=0)
 
 prop_in_eachcompartment = prop_in_highrisk
