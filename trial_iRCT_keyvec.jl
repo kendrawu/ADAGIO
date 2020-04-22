@@ -352,14 +352,14 @@ for isim in 1:nsim
             n_infectious_people_CI = quantile(n_infectious_people_mat, [0.5, 0.05, 0.95])
             println("Average number of infectious people in the trial: mean: ", mean(filter(isfinite, n_infectious_people_mat)), ", CI: ", n_infectious_people_CI)
 
+            TTE_CI = quantile(TTE_mat[:,2], [0.5, 0.05, 0.95])
+            println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat)), ", CI: ", TTE_CI)
+
             VE_CI = quantile(VE_true_mat, [0.5, 0.05, 0.95])
             println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_CI)
 
             R0_CI = quantile(R0_mat, [0.5, 0.05, 0.95])
             println("Reproductive number without intervention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
-
-            TTE_CI = quantile!(TTE_mat, [0.5, 0.05, 0.95])
-            println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat)), ", CI: ", TTE_CI)
 
             #Y = fn_divide(soln_mat3, endtime, nsim, 1)
             #lowerCI = zeros(round(Int,endtime))
