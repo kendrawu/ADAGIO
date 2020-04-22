@@ -14,6 +14,43 @@ using Plots
 include("sbm_fn.jl")
 include("trial_fn.jl")
 
+function fn_update_R0(Gc,N,T_arr)
+    k = sum(sum(Gc))/N # mean degree of the network
+    T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they haVE_true contact
+    R0 = T * (k^2/k - 1)
+    return k, T, R0
+end
+
+function fn_update_vars(samplesize, samplesize_mat, n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat, treatment_gp, timestep_fn, alpha, power, nstatus, tstatus, trial_begintime, trial_endtime, gamma_infectperiod_maxduration, Gc, N, T_arr)
+    #println("within function (samplesize): ",samplesize)
+    #println("within function (samplesize_mat): ",samplesize_mat)
+    #println("n_infectious_people_mat 1: ", n_infectious_people_mat)
+    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
+    #println("n_infectious_control, n_infectious_treatment: ", n_infectious_control, n_infectious_treatment)
+    n_infectious_people = n_infectious_control + n_infectious_treatment
+    #println("n_infectious_people: ", n_infectious_people)
+    TTE = fn_TTE(nstatus, tstatus, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+    (k, T, R0) = fn_update_R0(Gc, N, T_arr)
+    #println("within function (samplesize) after 2nd update: ",samplesize)
+    samplesize_mat = vcat(samplesize_mat, samplesize)
+    println("samplesize_mat: ", samplesize_mat)
+    n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_people)
+    println("n_infectious_people_mat: ", n_infectious_people_mat)
+    TTE_mat = vcat(TTE_mat, TTE)
+    println("TTE_mat: ", TTE_mat)
+    VE_true_mat = vcat(VE_true_mat, VE_true)
+    println("VE_true_mat: ", VE_true_mat)
+    R0_mat = vcat(R0_mat, R0)
+    println("R0_mat: ", R0_mat)
+    #println("within function (samplesize_mat): ",samplesize_mat)
+    #samplesize_mat = samplesize_mat[2:end] #Remove the first element from array
+    #println("within function (samplesize) after 3rd update: ",samplesize)
+    #println("within function (samplesize_mat): ",samplesize_mat)
+
+    return samplesize_mat, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat
+end
+
 # Set parameter values
 N = 2000 # Total population size
 begintime = 1.0
@@ -60,11 +97,11 @@ par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_
 #par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
 par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5.0, infectperiod_rate=0.8)
 
-nsim = 3 # Number of simulations
+nsim = 25 # Number of simulations
 trial_begintime = 10.0
 endtime = trial_begintime + 190.0 # Duration of simulation (timestep is in a unit of days)
 trial_endtime = endtime
-trial_posthighrisk = 3.0 # The number of days after trial_begintime we begin to recruit the rest of the population
+trial_posthighrisk = 7.0 # The number of days after trial_begintime we begin to recruit the rest of the population
 trial_communitynum = [1]
 treatment_gp = 1 # it needs to be an integer, not an array
 vac_efficacy = [0.6]
@@ -83,10 +120,19 @@ p0_te = 0.55 # Treatment Effect
 e = 1.64 # Efficacy stopping boundary
 f = 1.80 # Futility stopping boundary
 
+#Initialization
+samplesize_mat = zeros(1)
+n_infectious_people_mat = zeros(1)
+TTE_mat = zeros(1)
+VE_true_mat = zeros(1)
+R0_mat = zeros(1)
+
 gamma_infectperiod_duration = rand(Gamma(par_disease[1,:infectperiod_shape],1/par_disease[1,:infectperiod_rate]),1000)
 gamma_infectperiod_maxduration = maximum(gamma_infectperiod_duration)
 gamma_incubperiod_duration = rand(Gamma(par_disease[1,:incubperiod_shape],1/par_disease[1,:incubperiod_rate]),1000)
 gamma_incubperiod_maxduration = maximum(gamma_incubperiod_duration)
+
+sbm_sol_mat = zeros(Int, round(Int,endtime), 5) # Same as sbm_sol, except it is a matrix, not a DataFrame
 
 for isim in 1:nsim
     # Initializations
@@ -113,12 +159,12 @@ for isim in 1:nsim
     compartmentsize_hcw_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
     compartmentnum_hcw_arr = sample(1:N, round(Int,compartmentsize_hcw_arr[1]), replace=false, ordered=true) # Assign compartment number to each individual in the population
 
-    # For key transmission VE_truector
+    # For key transmission VE_true
     prop_in_eachcompartment = prop_in_keyvec
-    par_compartment_keyVE_truec = DataFrame(compartmentnum=2, compartmentsize_avg=(N*prop_in_eachcompartment)/2, compartmentsize_range=200)
-    par_compartment = par_compartment_keyVE_truec
-    compartmentsize_keyVE_truec_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
-    compartmentnum_keyVE_truec_arr = sample(1:N, round(Int,compartmentsize_keyVE_truec_arr[1]), replace=false, ordered=true)  # Assign compartment number to each individual in the population
+    par_compartment_keyvec = DataFrame(compartmentnum=2, compartmentsize_avg=(N*prop_in_eachcompartment)/2, compartmentsize_range=200)
+    par_compartment = par_compartment_keyvec
+    compartmentsize_keyvec_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
+    compartmentnum_keyvec_arr = sample(1:N, round(Int,compartmentsize_keyvec_arr[1]), replace=false, ordered=true)  # Assign compartment number to each individual in the population
 
     # Compute the parameters of the clusters
     hhsize_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "household") # Define the sizes of each household
@@ -188,9 +234,11 @@ for isim in 1:nsim
     V = zeros(Int8,V0) # V contains nodes_name of the vaccinated individuals
 
     Gc_fn202 = Gc
+    sbm_sol = sbm_sol_fn202
     nstatus202 = nstatus_fn
     intermediatetime1 = begintime+1
     intermediatetime2 = endtime
+
     for timestep1 in (round(Int,intermediatetime1)):(round(Int,intermediatetime2))
 
         # Set local variables
@@ -221,48 +269,43 @@ for isim in 1:nsim
                 sbm_sol_fn[timestep2,:V] = D[1,:V] # Put V value into the appropriate cell
             end
 
-            sbm_sol = sbm_sol_fn
+            #sbm_sol = sbm_sol_fn
             nstatus = nstatus_fn
             tstatus = tstatus_fn
             Gc = Gc_fn202
 
-            # Compute R0 in a network based on connectivity, without considering interVE_truention
+            # Compute R0 in a network based on connectivity, without considering intervention
             if timestep1 == round(Int,intermediatetime2)
-                k = sum(sum(Gc))/N # mean degree of the network
-                T = mean(T_arr[T_arr .> 0]) # AVE_truerage probability that an infectious individual will transmit the disease to a susceptible individual with whom they haVE_true contact
-                R0 = T * (k^2/k - 1)
+                (k,T,R0) = fn_update_R0(Gc, N, T_arr)
                 println("k = ", k, ", T = ",T, ", and R0 = ",R0)
-
-                global T
                 global R0
             end
         end
-
-        sbm_sol_mat = zeros(Int, round(Int,endtime), 5) # Same as sbm_sol, except it is a matrix, not a DataFrame
-        sbm_sol_mat[:,1] = sbm_sol_fn[:,1]
-        sbm_sol_mat[:,2] = sbm_sol_fn[:,2]
-        sbm_sol_mat[:,3] = sbm_sol_fn[:,3]
-        sbm_sol_mat[:,4] = sbm_sol_fn[:,4]
-        sbm_sol_mat[:,5] = sbm_sol_fn[:,5]
-        sbm_sol1 = sbm_sol_mat
-        global sbm_sol1
     end
+
+    # Same as sbm_sol, except it is a matrix, not a DataFrame
+    sbm_sol_mat[:,1] = sbm_sol[:,1]
+    sbm_sol_mat[:,2] = sbm_sol[:,2]
+    sbm_sol_mat[:,3] = sbm_sol[:,3]
+    sbm_sol_mat[:,4] = sbm_sol[:,4]
+    sbm_sol_mat[:,5] = sbm_sol[:,5]
 
     # Set local variable (for this function)
     # tstatus_fn = tstatus
 
     # Find those who are not in trial
     potential_nodes_notrial_index = findall(x->x==-1, tstatus[:,2]) # Nodes name of those not in trial
+    keyvec_arr = setdiff(potential_nodes_notrial_index, compartmentnum_keyvec_arr) # Nodes name of those key transmission vector - children - not in trial
 
     # Enrollment size
-    enrolsize = ceil(Int,length(potential_nodes_notrial_index)*prop_in_trial)
+    enrolsize = ceil(Int,length(keyvec_arr)*prop_in_trial)
     #println("Enrollment size = ", enrolsize)
 
-    if length(potential_nodes_notrial_index)>0
+    if length(keyvec_arr)>0
         # Select those who will be enrolled into the trial
-        nodes_in_trial = sample(potential_nodes_notrial_index, enrolsize, replace=false, ordered=true)
+        nodes_in_trial = sample(keyvec_arr, enrolsize, replace=false, ordered=true)
         while length(unique(nodes_in_trial)) != enrolsize # Found a bug in sample. See duplicate elements despite replace=false.
-            nodes_in_trial = sample(potential_nodes_notrial_index, enrolsize, replace=false, ordered=true)
+            nodes_in_trial = sample(keyvec_arr, enrolsize, replace=false, ordered=true)
         end
         n_treatment_enroll = floor(Int, enrolsize*allocation_ratio[2])
         elements_draw = minimum([length(nodes_in_trial), n_treatment_enroll])
@@ -276,6 +319,7 @@ for isim in 1:nsim
         for index3 in 1:length(nodes_in_treatment)
             tstatus[nodes_in_treatment[index3],2] = 1 # In treatment group
         end
+
         for index4 in 1:length(nodes_in_control)
             tstatus[nodes_in_control[index4],2] = 0 # In control group
         end
@@ -286,65 +330,52 @@ for isim in 1:nsim
     samplesize = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
     TTE = fn_TTE(nstatus, tstatus, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
 
+
     println("Results:")
-        samplesize_mat = samplesize
-        n_infectious_people_mat = n_infectious_control + n_infectious_treatment
-        TTE_mat = TTE
-        VE_true_mat = VE_true
-        R0_mat = R0
-
-        println("Number of iteration: ", isim)
-        println("Sample size: ", samplesize)
-        println("Number of infectious people in the trial: ", n_infectious_control + n_infectious_treatment)
-        println("Time-to-Event: ", TTE)
-        println("Vaccine efficacy: ", VE_true)
-        println("Reproductive number without intervention ", R0)
-
-    if isim>1
-        println("If isim>1: ", isim)
-        samplesize_mat = vcat(samplesize_mat, samplesize)
-        n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_control + n_infectious_treatment)
-        TTE_mat = vcat(TTE_mat, TTE)
-        VE_true_mat = vcat(VE_true_mat, VE_true)
-        R0_mat = vcat(R0_mat, R0)
-
-        if isim==nsim
-            println("If isim==nsim: ", isim)
-            samplesize_CI = quantile(samplesize_mat, [0.5, 0.05, 0.95])
-            println("Sample size (from true cases): mean: ", mean(filter(isfinite, samplesize_mat)), ", CI: ", samplesize_CI)
-
-            n_infectious_people_CI = quantile(n_infectious_people_mat, [0.5, 0.05, 0.95])
-            println("AVE_truerage number of infectious people in the trial: mean: ", mean(filter(isfinite, n_infectious_people_mat)), ", CI: ", n_infectious_people_CI)
-
-            TTE_CI = quantile!(TTE_mat[:,2], [0.5, 0.05, 0.95])
-            println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat[:,2])), ", CI: ", TTE_CI)
-
-            VE_CI = quantile(VE_true_mat, [0.5, 0.05, 0.95])
-            println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_CI)
-
-            R0_CI = quantile(R0_mat, [0.5, 0.05, 0.95])
-            println("Reproductive number without intervention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
-
-            Y = fn_divide(soln_mat, endtime, nsim, 3)
-            lowerCI = zeros(round(Int,endtime))
-            upperCI = zeros(round(Int,endtime))
-            medianCI = zeros(round(Int,endtime))
-            for index = 1:round(Int,endtime)
-                lowerCI[index] = quantile!(Y[index,:], 0.05)
-                upperCI[index] = quantile!(Y[index,:], 0.95)
-                medianCI[index] = median(Y[index,:])
-            end
-
-            X = fn_translate_nstatus(N, nstatus_mat, tstatus_mat, endtime, nsim, round(Int,endtime+1))
-            infectednum = zeros(Int, nsim)
-            for index in 1: nsim
-                infectednum[index] = fn_casecounting(X, N, prop_in_trial, allocation_ratio, index)
-            end
-            n_infected = sum(infectednum)
-            println("Number of infected on average: ", n_infected/nsim)
-
-            (plot1, plot2) = fn_plot(X,Y)
-            plot(plot1,plot2,layout=(2,1))
-        end
+    println("Number of iteration: ", isim)
+    if isim==1
+        println("Right after computation (samplesize): ", samplesize)
+        # Initializations
+        samplesize_mat = deepcopy(samplesize)
+        n_infectious_people = n_infectious_control + n_infectious_treatment
+        n_infectious_people_mat = deepcopy(n_infectious_people)
+        TTE_mat = deepcopy(TTE)
+        VE_true_mat = deepcopy(VE_true)
+        R0_mat = deepcopy(R0)
+        global samplesize_mat, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat
+        #println("Right after computation (samplesize_mat): ", samplesize_mat)
+    else
+        #samplesze=1
+        #println(samplesize_mat)
+        (samplesize_mat, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat) = fn_update_vars(samplesize, samplesize_mat, n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat, treatment_gp, timestep_fn, alpha, power, nstatus, tstatus, trial_begintime, trial_endtime, gamma_infectperiod_maxduration, Gc, N, T_arr)
     end
+
+    samplesize_CI = quantile(samplesize_mat, [0.5, 0.05, 0.95])
+    println("Sample size (from true cases): mean: ", mean(filter(isfinite, samplesize_mat)), ", CI: ", samplesize_CI)
+
+    n_infectious_people_CI = quantile(n_infectious_people_mat, [0.5, 0.05, 0.95])
+    println("Average number of infectious people in the trial: mean: ", mean(filter(isfinite, n_infectious_people_mat)), ", CI: ", n_infectious_people_CI)
+
+    VE_CI = quantile(VE_true_mat, [0.5, 0.05, 0.95])
+    println("Vaccine efficacy: mean: ", mean(filter(isfinite, VE_true_mat)), ", CI: ", VE_CI)
+
+    R0_CI = quantile(R0_mat, [0.5, 0.05, 0.95])
+    println("Reproductive number without intervention: mean: ", mean(filter(isfinite, R0_mat)), ", CI: ", R0_CI)
+
+    TTE_CI = quantile!(TTE_mat, [0.5, 0.05, 0.95])
+    println("Time-to-Event: mean: ", mean(filter(isfinite, TTE_mat)), ", CI: ", TTE_CI)
+
+        #Y = fn_divide(soln_mat3, endtime, nsim, 1)
+        #lowerCI = zeros(round(Int,endtime))
+        #upperCI = zeros(round(Int,endtime))
+        #medianCI = zeros(round(Int,endtime))
+        #for index = 1:round(Int,endtime)
+        #    lowerCI[index] = quantile!(Y[index,:], 0.05)
+        #    upperCI[index] = quantile!(Y[index,:], 0.95)
+        #    medianCI[index] = median(Y[index,:])
+        #end
+        #X = [lowerCI, medianCI, upperCI]
+        #plot1 = plot(1:Int(endtime), Y, legend=false)
+        #plot2 = plot(1:Int(endtime), X, legend=[lowerCI, median, upperCI])
+        #plot(plot1, plot2, layout = (2, 1))
 end
