@@ -52,14 +52,14 @@ function fn_update_vars(samplesize, samplesize_mat, n_control, n_treatment, n_in
 end
 
 # Set parameter values
-N = 4000 # Total population size
+N = 2000 # Total population size
 begintime = 1.0
 S0 = N # Number of suspectible people in the population at day 0
 V0 = 0 # Number of vaccinated individuals in the population at day 0
 casenum0 = 5 # Number of infectious individuals introduced into the community to begin the outbreak
 immunenum0 = 0 # Number of people who are immune to the disease at the beginning of the outbreak
 import_lambda = 1 # Number of occurrences variable for imported cases timeseries, assumed to follow Poisson Distribution
-lambda0 = 0.0000052 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
+lambda0 = 0.000052 # Per-time-step probability of infection for a susceptible nodes from an infectious neighbour
 prop_in_trial = 0.6 # Proportion of the population/ cluster will be enrolled in the trial
 prop_in_highrisk = 0.2 # Proportion of the population/ in the cluster are at high risk
 prop_in_hcw = (2.8/1000*N + N/8)/N # Based on data in England, 2.8 doctor per patient and 8 nurses per patient
@@ -68,14 +68,14 @@ prop_in_keyvec = 0.3 # Proportion of children in the population/ in the cluster 
 # hhnum: Number of households in the network
 # hhsize_avg: AVE_truerage size of one household
 # hhsize_range: Range of household sizes (sizes are uniformly distributed)
-par_hh = DataFrame(hhnum=1300, hhsize_avg=3, hhsize_range=2)
+par_hh = DataFrame(hhnum=650, hhsize_avg=3, hhsize_range=2)
 #par_hh = DataFrame(hhnum=1, hhsize_avg=500, hhsize_range=0)
 
 ## The clustered network
 # communitynum: Number of communities in the clustered network
 # communitysize_avg: AVE_truerage size of one community
 # communitysize_range: Range of community sizes (sizes are uniformly distributed)
-par_community = DataFrame(communitynum=4, communitysize_avg=1000, communitysize_range=50)
+par_community = DataFrame(communitynum=2, communitysize_avg=1000, communitysize_range=50)
 #par_community = DataFrame(communitynum=1, communitysize_avg=500, communitysize_range=0)
 
 prop_in_eachcompartment = prop_in_highrisk
@@ -97,7 +97,7 @@ par_prob = DataFrame(cprob_hhwithin_cwithin=1, cprob_hhbetween_cwithin=1, cprob_
 #par_disease = DataFrame(incubperiod_shape=2.11, incubperiod_rate=0.4, infectperiod_shape=3.0, infectperiod_rate=0.35)
 par_disease = DataFrame(incubperiod_shape=3.45, incubperiod_rate=0.66, infectperiod_shape=5.0, infectperiod_rate=0.8)
 
-nsim = 25 # Number of simulations
+nsim = 10 # Number of simulations
 trial_begintime = 10.0
 endtime = trial_begintime + 190.0 # Duration of simulation (timestep is in a unit of days)
 trial_endtime = endtime
@@ -150,21 +150,21 @@ for isim in 1:nsim
     par_compartment_highrisk = DataFrame(compartmentnum=2, compartmentsize_avg=(N*prop_in_eachcompartment)/2, compartmentsize_range=300)
     par_compartment = par_compartment_highrisk
     compartment_highrisksize_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
-    compartmentnum_highrisksize_arr = sample(1:N, round(Int,compartment_highrisksize_arr[1]), replace=false, ordered=true) # Assign compartment number to each individual in the population
+    compartmentnum_arr = sample(1:N, round(Int,compartment_highrisksize_arr[1]), replace=false, ordered=true) # Assign compartment number to each individual in the population
 
     # For high-exposure group
     prop_in_eachcompartment = prop_in_hcw
     par_compartment_hcw = DataFrame(compartmentnum=2, compartmentsize_avg=(N*prop_in_eachcompartment)/2, compartmentsize_range=50)
     par_compartment = par_compartment_hcw
     compartmentsize_hcw_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
-    compartmentnum_hcw_arr = sample(1:N, round(Int,compartmentsize_hcw_arr[1]), replace=false, ordered=true) # Assign compartment number to each individual in the population
+    compartmentnum_arr = sample(1:N, round(Int,compartmentsize_hcw_arr[1]), replace=false, ordered=true) # Assign compartment number to each individual in the population
 
     # For key transmission VE_true
     prop_in_eachcompartment = prop_in_keyvec
     par_compartment_keyvec = DataFrame(compartmentnum=2, compartmentsize_avg=(N*prop_in_eachcompartment)/2, compartmentsize_range=200)
     par_compartment = par_compartment_keyvec
     compartmentsize_keyvec_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
-    compartmentnum_keyvec_arr = sample(1:N, round(Int,compartmentsize_keyvec_arr[1]), replace=false, ordered=true)  # Assign compartment number to each individual in the population
+    compartmentnum_arr = sample(1:N, round(Int,compartmentsize_keyvec_arr[1]), replace=false, ordered=true)  # Assign compartment number to each individual in the population
 
     # Compute the parameters of the clusters
     hhsize_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "household") # Define the sizes of each household
@@ -295,17 +295,17 @@ for isim in 1:nsim
 
     # Find those who are not in trial
     potential_nodes_notrial_index = findall(x->x==-1, tstatus[:,2]) # Nodes name of those not in trial
-    keyvec_arr = setdiff(potential_nodes_notrial_index, compartmentnum_keyvec_arr) # Nodes name of those key transmission vector - children - not in trial
+    compartment_arr = setdiff(potential_nodes_notrial_index, compartmentnum_arr) # Nodes name of those key transmission vector - children - not in trial
 
     # Enrollment size
-    enrolsize = ceil(Int,length(keyvec_arr)*prop_in_trial)
+    enrolsize = ceil(Int,length(compartment_arr)*prop_in_trial)
     #println("Enrollment size = ", enrolsize)
 
-    if length(keyvec_arr)>0
+    if length(compartment_arr)>0
         # Select those who will be enrolled into the trial
-        nodes_in_trial = sample(keyvec_arr, enrolsize, replace=false, ordered=true)
+        nodes_in_trial = sample(compartment_arr, enrolsize, replace=false, ordered=true)
         while length(unique(nodes_in_trial)) != enrolsize # Found a bug in sample. See duplicate elements despite replace=false.
-            nodes_in_trial = sample(keyvec_arr, enrolsize, replace=false, ordered=true)
+            nodes_in_trial = sample(compartment_arr, enrolsize, replace=false, ordered=true)
         end
         n_treatment_enroll = floor(Int, enrolsize*allocation_ratio[2])
         elements_draw = minimum([length(nodes_in_trial), n_treatment_enroll])
