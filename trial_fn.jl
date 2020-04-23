@@ -1,3 +1,40 @@
+function fn_update_R0(Gc,N,T_arr)
+    k = sum(sum(Gc))/N # mean degree of the network
+    T = mean(T_arr[T_arr .> 0]) # Average probability that an infectious individual will transmit the disease to a susceptible individual with whom they haVE_true contact
+    R0 = T * (k^2/k - 1)
+    return k, T, R0
+end
+
+function fn_update_vars(samplesize, samplesize_mat, n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat, treatment_gp, timestep_fn, alpha, power, nstatus, tstatus, trial_begintime, trial_endtime, gamma_infectperiod_maxduration, Gc, N, T_arr)
+    #println("within function (samplesize): ",samplesize)
+    #println("within function (samplesize_mat): ",samplesize_mat)
+    #println("n_infectious_people_mat 1: ", n_infectious_people_mat)
+    (n_control, n_treatment, n_infectious_control, n_infectious_treatment, n_exposed_control, n_exposed_treatment, VE_true) = fn_vaccine_efficacy(tstatus, nstatus, timestep_fn, treatment_gp)
+    samplesize = fn_samplesize_truecases(n_control, n_treatment, n_infectious_control, n_infectious_treatment, treatment_gp, timestep_fn, alpha, power)
+    #println("n_infectious_control, n_infectious_treatment: ", n_infectious_control, n_infectious_treatment)
+    n_infectious_people = n_infectious_control + n_infectious_treatment
+    #println("n_infectious_people: ", n_infectious_people)
+    TTE = fn_TTE(nstatus, tstatus, treatment_gp, trial_begintime, trial_endtime, gamma_infectperiod_maxduration)
+    (k, T, R0) = fn_update_R0(Gc, N, T_arr)
+    #println("within function (samplesize) after 2nd update: ",samplesize)
+    samplesize_mat = vcat(samplesize_mat, samplesize)
+    println("samplesize_mat: ", samplesize_mat)
+    n_infectious_people_mat = vcat(n_infectious_people_mat, n_infectious_people)
+    println("n_infectious_people_mat: ", n_infectious_people_mat)
+    TTE_mat = vcat(TTE_mat, TTE)
+    println("TTE_mat: ", TTE_mat)
+    VE_true_mat = vcat(VE_true_mat, VE_true)
+    println("VE_true_mat: ", VE_true_mat)
+    R0_mat = vcat(R0_mat, R0)
+    println("R0_mat: ", R0_mat)
+    #println("within function (samplesize_mat): ",samplesize_mat)
+    #samplesize_mat = samplesize_mat[2:end] #Remove the first element from array
+    #println("within function (samplesize) after 3rd update: ",samplesize)
+    #println("within function (samplesize_mat): ",samplesize_mat)
+
+    return samplesize_mat, n_infectious_people_mat, TTE_mat, VE_true_mat, R0_mat
+end
+
 # Function to generate imported cases and randomly distribute them into different clusters
 function fn_importcases(par_disease, importcasenum_timeseries, nstatus, timestep)
 
@@ -927,8 +964,8 @@ end
 
 function fn_divide(soln_mat, endtime, nsim, colnum)
     Y = zeros(Int, round(Int,endtime), nsim)
-    for index in 1:nsim
-        Y[:,index] = soln_mat[round(Int,endtime*(index-1)+1):round(Int,endtime*index),colnum]
+    for Yindex in 1:nsim
+        Y[:,Yindex] = soln_mat[round(Int,endtime*(Yindex-1)+1):round(Int,endtime*Yindex),colnum]
     end
     return Y
 end
