@@ -149,14 +149,14 @@ for isim in 1:nsim
     prop_in_eachcompartment = prop_in_highrisk
     par_compartment_highrisk = DataFrame(compartmentnum=2, compartmentsize_avg=(N*prop_in_eachcompartment)/2, compartmentsize_range=300)
     par_compartment = par_compartment_highrisk
-    compartment_highrisksize_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
+    compartment_highrisksize_arr = fn_par_cluster2(N, par_hh, par_community, par_compartment, "compartment")
     compartmentnum_arr = sample(1:N, round(Int,compartment_highrisksize_arr[1]), replace=false, ordered=true) # Assign compartment number to each individual in the population
 
     # For high-exposure group
     prop_in_eachcompartment = prop_in_hcw
     par_compartment_hcw = DataFrame(compartmentnum=2, compartmentsize_avg=(N*prop_in_eachcompartment)/2, compartmentsize_range=50)
     par_compartment = par_compartment_hcw
-    compartmentsize_hcw_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "compartment")
+    compartmentsize_hcw_arr = fn_par_cluster2(N, par_hh, par_community, par_compartment, "compartment")
     compartmentnum_arr = sample(1:N, round(Int,compartmentsize_hcw_arr[1]), replace=false, ordered=true) # Assign compartment number to each individual in the population
 
     # For key transmission VE_true
@@ -167,10 +167,10 @@ for isim in 1:nsim
     #compartmentnum_arr = sample(1:N, round(Int,compartmentsize_keyvec_arr[1]), replace=false, ordered=true)  # Assign compartment number to each individual in the population
 
     # Compute the parameters of the clusters
-    hhsize_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "household") # Define the sizes of each household
+    hhsize_arr = fn_par_cluster2(N, par_hh, par_community, par_compartment, "household") # Define the sizes of each household
     hhsize_arr = round.(Int, hhsize_arr)
     hhnum_arr = fn_partition(hhsize_arr) # Assign household number to each individual in the population
-    communitysize_arr = fn_par_cluster(N, par_hh, par_community, par_compartment, "community") # Define the sizes of each community
+    communitysize_arr = fn_par_cluster2(N, par_hh, par_community, par_compartment, "community") # Define the sizes of each community
     communitysize_arr = round.(Int, communitysize_arr)
     communitynum_arr = fn_partition(communitysize_arr) # Assign community number to each individual in the population
 
