@@ -1,5 +1,5 @@
 # ADAGIO
-A repo holds codes for the project ADAGIO (Adaptive Designs And Genomics In Outbreaks)
+A repo holds codes for the project ADAGIO (Adaptive Designs And Genomics In Outbreaks). Note: This is working repository, so code and data are likely to change over time.
 
 Transmission dynamic model: 
 
